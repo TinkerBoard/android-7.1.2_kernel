@@ -326,7 +326,7 @@ static int rknand_probe(struct platform_device *pdev)
 		memcpy(nand_idb_data, membase + 0x1000, 0x800);
 		if (*(int *)(&nand_idb_data[0]) == 0x44535953) {
 			rknand_boot_media = *(int *)(&nand_idb_data[8]);
-			if (rknand_boot_media == 2) /*boot from emmc*/
+			if (rknand_boot_media != 1) /*not boot from nand flash*/
 				return -1;
 		}
 	}
