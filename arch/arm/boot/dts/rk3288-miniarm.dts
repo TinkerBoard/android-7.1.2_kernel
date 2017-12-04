@@ -692,9 +692,6 @@
 			rockchip,pins = <0 14 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 
-		pwr_3g: pwr-3g {
-			rockchip,pins = <7 8 RK_FUNC_GPIO &pcfg_pull_none>;
-		};
 	};
 
 	wireless-bluetooth {
