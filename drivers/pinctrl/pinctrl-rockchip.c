@@ -1166,10 +1166,23 @@ static int rockchip_set_mux(struct rockchip_pin_bank *bank, int pin, int mux)
 				return ret;
 		}
 	}
-
+	#ifdef CONFIG_I2S_SHORT
+	if (bank->bank_num == 6 && (pin == 1 || pin == 2)) {
+		mask = 0xf;
+		bit = 1 * 2;
+		data = (mask << (bit + 16));
+		rmask = data | (data >> 16);
+		data |= (((mux << 2) | mux) & mask) << bit;
+	} else {
+		data = (mask << (bit + 16));
+		rmask = data | (data >> 16);
+		data |= (mux & mask) << bit;
+	} 
+	#else
 	data = (mask << (bit + 16));
 	rmask = data | (data >> 16);
 	data |= (mux & mask) << bit;
+	#endif
 	ret = regmap_update_bits(regmap, reg, rmask, data);
 
 	return ret;
@@ -1977,7 +1990,11 @@ static int rockchip_set_pull(struct rockchip_pin_bank *bank,
 	int reg, ret, i, pull_type;
 	u8 bit;
 	u32 data, rmask;
-
+	#ifdef CONFIG_I2S_SHORT
+	/* For GPIO 185 and 186 are shorted. */
+	if (bank->bank_num  == 6 && pin_num == 2)
+		pull = PIN_CONFIG_BIAS_DISABLE;
+	#endif
 	dev_dbg(info->dev, "setting pull of GPIO%d-%d to %d\n",
 		 bank->bank_num, pin_num, pull);
 
@@ -2175,13 +2192,25 @@ static int _rockchip_pmx_gpio_set_direction(struct gpio_chip *chip,
 	int ret;
 	unsigned long flags;
 	u32 data;
-
+	#ifdef CONFIG_I2S_SHORT
+	unsigned long gpio_pin;
+	#endif
 	bank = gc_to_pin_bank(chip);
 
 	ret = rockchip_set_mux(bank, pin, RK_FUNC_GPIO);
 	if (ret < 0)
 		return ret;
-
+	#ifdef CONFIG_I2S_SHORT
+	/* For GPIO 185 and 186 are shorted*/
+	gpio_pin = bank->pin_base + pin;
+	if (gpio_pin == 185 || gpio_pin == 186) {
+		ret = rockchip_set_pull(bank, 2, PIN_CONFIG_BIAS_DISABLE);
+		if (ret < 0)
+			return ret;
+		if (gpio_pin == 186)
+			input = true;
+	}
+	#endif
 	clk_enable(bank->clk);
 	raw_spin_lock_irqsave(&bank->slock, flags);
 
@@ -2191,6 +2220,11 @@ static int _rockchip_pmx_gpio_set_direction(struct gpio_chip *chip,
 		data |= BIT(pin);
 	else
 		data &= ~BIT(pin);
+	#ifdef CONFIG_I2S_SHORT
+	/* For GPIO 185 and 186 are shorted. */
+	if (gpio_pin == 185)
+		data &= ~BIT(2);
+	#endif
 	writel_relaxed(data, bank->reg_base + GPIO_SWPORT_DDR);
 
 	raw_spin_unlock_irqrestore(&bank->slock, flags);

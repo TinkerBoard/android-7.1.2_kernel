@@ -630,14 +630,24 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
 	struct pinctrl_gpio_range *range;
 	int ret;
 	int pin;
-
+	#ifdef CONFIG_I2S_SHORT
+	/*For GPIO 185 and 186 are shorted. */
+	if (gpio == 186)
+		input = true;
+	#endif
 	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
 	if (ret) {
 		return ret;
 	}
 
 	mutex_lock(&pctldev->mutex);
-
+	#ifdef CONFIG_I2S_SHORT
+	/* For GPIO 185 and 186 are shorted. */
+	if (gpio == 185) {
+		pin = gpio_to_pin(range, gpio);
+		ret = pinmux_gpio_direction(pctldev, range, pin, true);
+	}
+	#endif 
 	/* Convert to the pin controllers number space */
 	pin = gpio_to_pin(range, gpio);
 	ret = pinmux_gpio_direction(pctldev, range, pin, input);
