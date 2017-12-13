@@ -594,6 +594,10 @@
 	status = "okay";
 };
 
+&rockchip_suspend {
+	status = "okay";
+};
+
 &pinctrl {
 	pcfg_pull_none_drv_8ma: pcfg-pull-none-drv-8ma {
 		drive-strength = <8>;
