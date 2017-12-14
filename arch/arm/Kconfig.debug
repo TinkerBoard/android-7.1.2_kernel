@@ -43,6 +43,9 @@ config FRAME_POINTER
 	  when a problem occurs with the kernel, the information that is
 	  reported is severely limited.
 
+config I2S_SHORT
+	bool "GPIO 185 and 186(I2S) is shorted in TinkerBoard."
+
 config ARM_UNWIND
 	bool "Enable stack unwinding support (EXPERIMENTAL)"
 	depends on AEABI
