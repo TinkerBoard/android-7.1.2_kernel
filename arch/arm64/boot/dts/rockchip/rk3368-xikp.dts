@@ -253,6 +253,37 @@
 	logic-supply = <&vdd_logic>;
 };
 
+&dfi {
+	status = "okay";
+};
+
+&dmc {
+	status = "okay";
+	center-supply = <&vdd_logic>;
+	devfreq-events = <&dfi>;
+	upthreshold = <60>;
+	downdifferential = <20>;
+	system-status-freq = <
+		/*system status		freq(KHz)*/
+		SYS_STATUS_NORMAL	600000
+		SYS_STATUS_REBOOT	600000
+		SYS_STATUS_SUSPEND	240000
+		SYS_STATUS_VIDEO_1080P	240000
+		SYS_STATUS_VIDEO_4K	600000
+		SYS_STATUS_PERFORMANCE	600000
+		SYS_STATUS_BOOST	396000
+		SYS_STATUS_DUALVIEW	600000
+		SYS_STATUS_ISP		528000
+	>;
+	vop-bw-dmc-freq = <
+	/* min_bw(MB/s) max_bw(MB/s) freq(KHz) */
+		0       531      240000
+		532     99999    396000
+	>;
+	auto-min-freq = <240000>;
+	auto-freq-en = <1>;
+};
+
 &rockchip_suspend {
 	status = "okay";
 	rockchip,sleep-mode-config = <
@@ -298,7 +329,7 @@
 	num-slots = <1>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_cd &sdmmc_bus4>;
-	status = "okay";
+	status = "disabled";
 };
 
 &sdio0 {
@@ -643,8 +674,8 @@
 		type = <SENSOR_TYPE_ACCEL>;
 		irq_enable = <0>;
 		poll_delay_ms = <30>;
-		layout = <1>;
-		support-hw-poweroff = <1>;
+		layout = <4>;
+		reprobe_en = <1>;
 	};
 
 	sensor@19 {
@@ -653,9 +684,10 @@
 		reg = <0x19>;
 		type = <SENSOR_TYPE_ACCEL>;
 		irq-gpio = <&gpio3 14 IRQ_TYPE_LEVEL_LOW>;
-		irq_enable = <1>;
+		irq_enable = <0>;
 		poll_delay_ms = <30>;
 		layout = <6>;
+		reprobe_en = <1>;
 	};
 
 	sensor@10 {
@@ -747,7 +779,7 @@
 			native-mode = <&timing0>;
 
 			timing0: timing0 {
-				clock-frequency = <145000000>;
+				clock-frequency = <159000000>;
 				hactive = <1200>;
 				vactive = <1920>;
 				hback-porch = <60>;

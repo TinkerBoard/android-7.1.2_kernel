@@ -348,13 +348,6 @@ static int rk816_set_suspend_enable(struct regulator_dev *rdev)
 	}
 
 	if ((rdev->desc->id > RK816_ID_DCDC4) &&
-	    (rdev->desc->id <= RK816_ID_OTG_SWITCH)) {
-		reg = rdev->desc->enable_reg +
-			RK816_SWITCH_SLP_EN_REG_OFFSET;
-		val = 1 << (rdev->desc->id + 1);
-	}
-
-	if ((rdev->desc->id > RK816_ID_OTG_SWITCH) &&
 	    (rdev->desc->id <= RK816_ID_LDO4)) {
 		reg = rdev->desc->enable_reg -
 			RK816_LDO1_4_SLP_EN_REG_OFFSET;
@@ -370,7 +363,7 @@ static int rk816_set_suspend_enable(struct regulator_dev *rdev)
 
 	return regmap_update_bits(rdev->regmap, reg,
 				  val,
-				  0);
+				  val);
 }
 
 static int rk816_set_suspend_disable(struct regulator_dev *rdev)
@@ -382,11 +375,6 @@ static int rk816_set_suspend_disable(struct regulator_dev *rdev)
 			RK816_DCDC_SLP_EN_REG_OFFSET;
 
 	if ((rdev->desc->id > RK816_ID_DCDC4) &&
-	    (rdev->desc->id <= RK816_ID_OTG_SWITCH))
-		reg = rdev->desc->enable_reg +
-			RK816_SWITCH_SLP_EN_REG_OFFSET;
-
-	if ((rdev->desc->id > RK816_ID_OTG_SWITCH) &&
 	    (rdev->desc->id <= RK816_ID_LDO4))
 		reg = rdev->desc->enable_reg -
 			RK816_LDO1_4_SLP_EN_REG_OFFSET;
@@ -400,7 +388,7 @@ static int rk816_set_suspend_disable(struct regulator_dev *rdev)
 
 	return regmap_update_bits(rdev->regmap, reg,
 				  val,
-				  val);
+				  0);
 }
 
 static int rk808_set_suspend_enable(struct regulator_dev *rdev)
@@ -727,25 +715,6 @@ static const struct regulator_desc rk816_reg[] = {
 		.enable_mask = BIT(7) | BIT(3),
 		.enable_val = BIT(7) | BIT(3),
 		.disable_val = BIT(7),
-		.owner = THIS_MODULE,
-	},
-	RK816_DESC(RK816_ID_BOOST, "DCDC_BOOST", "boost", 4700, 5400, 100,
-		   RK816_BOOST_ON_VESL_REG, RK818_BOOST_ON_VSEL_MASK,
-		   RK816_DCDC_EN_REG2, BIT(4) | BIT(0), BIT(4) | BIT(0),
-		   BIT(4), 0),
-	{
-		.name = "OTG_SWITCH",
-		.supply_name = "usb",
-		.of_match = of_match_ptr("OTG_SWITCH"),
-		.regulators_node = of_match_ptr("regulators"),
-		.id = RK816_ID_OTG_SWITCH,
-		.ops = &rk808_switch_ops,
-		.type = REGULATOR_VOLTAGE,
-		.n_voltages = 1,
-		.enable_reg = RK816_DCDC_EN_REG2,
-		.enable_mask = BIT(6) | BIT(2),
-		.enable_val = BIT(6) | BIT(2),
-		.disable_val = BIT(6),
 		.owner = THIS_MODULE,
 	},
 	RK816_DESC(RK816_ID_LDO1, "LDO_REG1", "vcc5", 800, 3400, 100,

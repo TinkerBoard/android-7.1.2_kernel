@@ -24,6 +24,7 @@
 #define __DRM_EDID_H__
 
 #include <linux/types.h>
+#include <linux/hdmi.h>
 
 #define EDID_LENGTH 128
 #define DDC_ADDR 0x50
@@ -210,9 +211,9 @@ struct detailed_timing {
 #define DRM_EDID_HDMI_DC_Y444             (1 << 3)
 
 /* YCBCR 420 deep color modes */
-#define DRM_EDID_YCBCR420_DC_48		  (1 << 6)
-#define DRM_EDID_YCBCR420_DC_36		  (1 << 5)
-#define DRM_EDID_YCBCR420_DC_30		  (1 << 4)
+#define DRM_EDID_YCBCR420_DC_48		  (1 << 2)
+#define DRM_EDID_YCBCR420_DC_36		  (1 << 1)
+#define DRM_EDID_YCBCR420_DC_30		  (1 << 0)
 #define DRM_EDID_YCBCR420_DC_MASK (DRM_EDID_YCBCR420_DC_48 | \
 				    DRM_EDID_YCBCR420_DC_36 | \
 				    DRM_EDID_YCBCR420_DC_30)
@@ -354,6 +355,10 @@ static inline int drm_eld_mnl(const uint8_t *eld)
 {
 	return (eld[DRM_ELD_CEA_EDID_VER_MNL] & DRM_ELD_MNL_MASK) >> DRM_ELD_MNL_SHIFT;
 }
+
+int
+drm_hdmi_infoframe_set_hdr_metadata(struct hdmi_drm_infoframe *frame,
+				    void *hdr_source_metadata);
 
 /**
  * drm_eld_sad - Get ELD SAD structures.

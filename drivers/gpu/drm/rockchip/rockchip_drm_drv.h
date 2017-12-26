@@ -66,16 +66,34 @@ struct drm_rockchip_subdrv {
 };
 
 struct rockchip_atomic_commit {
-	struct work_struct	work;
 	struct drm_atomic_state *state;
 	struct drm_device *dev;
-	struct mutex lock;
 	size_t bandwidth;
 };
 
 struct rockchip_dclk_pll {
 	struct clk *pll;
 	unsigned int use_count;
+};
+
+struct rockchip_sdr2hdr_state {
+	int sdr2hdr_func;
+
+	bool bt1886eotf_pre_conv_en;
+	bool rgb2rgb_pre_conv_en;
+	bool rgb2rgb_pre_conv_mode;
+	bool st2084oetf_pre_conv_en;
+
+	bool bt1886eotf_post_conv_en;
+	bool rgb2rgb_post_conv_en;
+	bool rgb2rgb_post_conv_mode;
+	bool st2084oetf_post_conv_en;
+};
+
+struct rockchip_hdr_state {
+	bool pre_overlay;
+	bool hdr2sdr_en;
+	struct rockchip_sdr2hdr_state sdr2hdr_state;
 };
 
 struct rockchip_crtc_state {
@@ -102,6 +120,14 @@ struct rockchip_crtc_state {
 	int output_mode;
 	int output_flags;
 	int bus_format;
+	int yuv_overlay;
+	int post_r2y_en;
+	int post_y2r_en;
+	int post_csc_mode;
+	int bcsh_en;
+	int color_space;
+	int eotf;
+	struct rockchip_hdr_state hdr;
 };
 
 #define to_rockchip_crtc_state(s) \
@@ -144,13 +170,18 @@ struct rockchip_drm_private {
 	struct drm_property *cabc_stage_down_property;
 	struct drm_property *cabc_global_dn_property;
 	struct drm_property *cabc_calc_pixel_num_property;
+	struct drm_property *eotf_prop;
+	struct drm_property *color_space_prop;
 	void *backlight;
 	struct drm_fb_helper *fbdev_helper;
 	struct drm_gem_object *fbdev_bo;
 	const struct rockchip_crtc_funcs *crtc_funcs[ROCKCHIP_MAX_CRTC];
 	struct drm_atomic_state *state;
 
-	struct rockchip_atomic_commit commit;
+	struct rockchip_atomic_commit *commit;
+	/* protect async commit */
+	struct mutex commit_lock;
+	struct work_struct commit_work;
 	struct iommu_domain *domain;
 	struct gen_pool *secure_buffer_pool;
 #ifdef CONFIG_DRM_DMA_SYNC

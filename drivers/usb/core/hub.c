@@ -2657,13 +2657,16 @@ static int hub_port_wait_reset(struct usb_hub *hub, int port1,
 	if (!(portstatus & USB_PORT_STAT_CONNECTION))
 		return -ENOTCONN;
 
-	/* bomb out completely if the connection bounced.  A USB 3.0
-	 * connection may bounce if multiple warm resets were issued,
+	/* Retry if connect change is set but status is still connected.
+	 * A USB 3.0 connection may bounce if multiple warm resets were issued,
 	 * but the device may have successfully re-connected. Ignore it.
 	 */
 	if (!hub_is_superspeed(hub->hdev) &&
-			(portchange & USB_PORT_STAT_C_CONNECTION))
-		return -ENOTCONN;
+	    (portchange & USB_PORT_STAT_C_CONNECTION)) {
+		usb_clear_port_feature(hub->hdev, port1,
+				       USB_PORT_FEAT_C_CONNECTION);
+		return -EAGAIN;
+	}
 
 	if (!(portstatus & USB_PORT_STAT_ENABLE))
 		return -EBUSY;
@@ -4762,7 +4765,7 @@ static void hub_port_connect(struct usb_hub *hub, int port1, u16 portstatus,
 			goto loop;
 
 		if (udev->quirks & USB_QUIRK_DELAY_INIT)
-			msleep(1000);
+			msleep(2000);
 
 		/* consecutive bus-powered hubs aren't reliable; they can
 		 * violate the voltage drop budget.  if the new child has
@@ -5028,7 +5031,24 @@ static void port_event(struct usb_hub *hub, int port1)
 		} else {
 			usb_unlock_port(port_dev);
 			usb_lock_device(udev);
-			usb_reset_device(udev);
+
+			/**
+			 * Some special SoCs (e.g. rk322xh) USB3 PHY lose the
+			 * ability to detect a disconnection when USB3 device
+			 * plug out, fortunately, it can detect port link state
+			 * change here, so we can do soft disconnect according
+			 * to the PLC here.
+			 *
+			 * And we only need to do the soft disconnect for root
+			 * hub. In addition, we just reuse the autosuspend quirk
+			 * but not add a new quirk for this issue. Because this
+			 * issue always occurs with autosuspend problem.
+			 */
+			if (!hub->hdev->parent && (hdev->quirks &
+			    USB_QUIRK_AUTO_SUSPEND))
+				usb_remove_device(udev);
+			else
+				usb_reset_device(udev);
 			usb_unlock_device(udev);
 			usb_lock_port(port_dev);
 			connect_change = 0;

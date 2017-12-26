@@ -41,7 +41,6 @@
 #include <linux/pm_runtime.h>
 #include <linux/iopoll.h>
 
-#include <linux/rockchip/cru.h>
 #include <linux/rockchip/pmu.h>
 #include <linux/rockchip/grf.h>
 
@@ -388,7 +387,6 @@ struct vpu_service_info {
 	u32 *reg_base;
 	u32 ioaddr;
 	struct regmap *grf;
-	u32 *grf_base;
 
 	char *name;
 
@@ -459,7 +457,6 @@ static inline int grf_combo_switch(const struct vpu_subdev_data *data)
 	u32 raw = 0;
 
 	bits = 1 << pservice->mode_bit;
-#ifdef CONFIG_MFD_SYSCON
 	if (pservice->grf) {
 		regmap_read(pservice->grf, pservice->mode_ctrl, &raw);
 
@@ -469,36 +466,11 @@ static inline int grf_combo_switch(const struct vpu_subdev_data *data)
 		else
 			regmap_write(pservice->grf, pservice->mode_ctrl,
 				     (raw & (~bits)) | (bits << 16));
-	} else if (pservice->grf_base) {
-		u32 *grf_base = pservice->grf_base;
-
-		raw = readl_relaxed(grf_base + pservice->mode_ctrl / 4);
-		if (data->mode == VCODEC_RUNNING_MODE_HEVC)
-			writel_relaxed(raw | bits | (bits << 16),
-				       grf_base + pservice->mode_ctrl / 4);
-		else
-			writel_relaxed((raw & (~bits)) | (bits << 16),
-				       grf_base + pservice->mode_ctrl / 4);
 	} else {
 		vpu_err("no grf resource define, switch decoder failed\n");
 		return -EINVAL;
 	}
-#else
-	if (pservice->grf_base) {
-		u32 *grf_base = pservice->grf_base;
 
-		raw = readl_relaxed(grf_base + pservice->mode_ctrl / 4);
-		if (data->mode == VCODEC_RUNNING_MODE_HEVC)
-			writel_relaxed(raw | bits | (bits << 16),
-				       grf_base + pservice->mode_ctrl / 4);
-		else
-			writel_relaxed((raw & (~bits)) | (bits << 16),
-				       grf_base + pservice->mode_ctrl / 4);
-	} else {
-		vpu_err("no grf resource define, switch decoder failed\n");
-		return -EINVAL;
-	}
-#endif
 	return 0;
 }
 
@@ -531,7 +503,7 @@ static void vcodec_enter_mode(struct vpu_subdev_data *data)
 	if (pservice->curr_mode == data->mode)
 		return;
 
-	vpu_debug(DEBUG_IOMMU, "vcodec enter mode %d\n", data->mode);
+	vpu_debug(DEBUG_REGISTER, "vcodec enter mode %d\n", data->mode);
 	list_for_each_entry_safe(subdata, n,
 				 &pservice->subdev_list, lnk_service) {
 		if (data != subdata && subdata->mmu_dev &&
@@ -817,12 +789,6 @@ static void vpu_service_power_on(struct vpu_subdev_data *data,
 		return;
 
 	dev_dbg(pservice->dev, "power on\n");
-
-#define BIT_VCODEC_CLK_SEL	(1<<10)
-	if (of_machine_is_compatible("rockchip,rk3126"))
-		writel_relaxed(readl_relaxed(RK_GRF_VIRT + RK312X_GRF_SOC_CON1)
-			| BIT_VCODEC_CLK_SEL | (BIT_VCODEC_CLK_SEL << 16),
-			RK_GRF_VIRT + RK312X_GRF_SOC_CON1);
 
 #if VCODEC_CLOCK_ENABLE
 	if (pservice->aclk_vcodec)
@@ -1389,22 +1355,22 @@ static void vpu_service_set_freq(struct vpu_service_info *pservice,
 	atomic_set(&pservice->freq_status, reg->freq);
 	switch (reg->freq) {
 	case VPU_FREQ_200M: {
-		clk_set_rate(pservice->aclk_vcodec, 200*MHZ);
+		clk_set_rate(pservice->aclk_vcodec, 200 * MHZ);
 	} break;
 	case VPU_FREQ_266M: {
-		clk_set_rate(pservice->aclk_vcodec, 266*MHZ);
+		clk_set_rate(pservice->aclk_vcodec, 266 * MHZ);
 	} break;
 	case VPU_FREQ_300M: {
-		clk_set_rate(pservice->aclk_vcodec, 300*MHZ);
+		clk_set_rate(pservice->aclk_vcodec, 300 * MHZ);
 	} break;
 	case VPU_FREQ_400M: {
-		clk_set_rate(pservice->aclk_vcodec, 400*MHZ);
+		clk_set_rate(pservice->aclk_vcodec, 400 * MHZ);
 	} break;
 	case VPU_FREQ_500M: {
-		clk_set_rate(pservice->aclk_vcodec, 500*MHZ);
+		clk_set_rate(pservice->aclk_vcodec, 500 * MHZ);
 	} break;
 	case VPU_FREQ_600M: {
-		clk_set_rate(pservice->aclk_vcodec, 600*MHZ);
+		clk_set_rate(pservice->aclk_vcodec, 600 * MHZ);
 	} break;
 	default: {
 		unsigned long rate = 300*MHZ;
@@ -2290,6 +2256,12 @@ static int vcodec_subdev_probe(struct platform_device *pdev,
 
 	dev_info(dev, "vpu mmu dec %p\n", data->mmu_dev);
 
+#define BIT_VCODEC_CLK_SEL	BIT(10)
+	if (of_machine_is_compatible("rockchip,rk3126") ||
+	    of_machine_is_compatible("rockchip,rk3128"))
+		regmap_write(pservice->grf, RK312X_GRF_SOC_CON1,
+			BIT_VCODEC_CLK_SEL | (BIT_VCODEC_CLK_SEL << 16));
+
 	clear_bit(MMU_ACTIVATED, &data->state);
 	vpu_service_power_on(data, pservice);
 
@@ -2352,7 +2324,6 @@ static int vcodec_subdev_probe(struct platform_device *pdev,
 	atomic_set(&data->enc_dev.irq_count_pp, 0);
 
 	get_hw_info(data);
-	pservice->auto_freq = true;
 
 	/* create device node */
 	ret = alloc_chrdev_region(&data->dev_t, 0, 1, name);
@@ -2431,7 +2402,6 @@ static void vcodec_read_property(struct device_node *np,
 	pservice->mode_bit = 0;
 	pservice->mode_ctrl = 0;
 	pservice->subcnt = 0;
-	pservice->grf_base = NULL;
 
 	of_property_read_u32(np, "subcnt", &pservice->subcnt);
 
@@ -2439,25 +2409,13 @@ static void vcodec_read_property(struct device_node *np,
 		of_property_read_u32(np, "mode_bit", &pservice->mode_bit);
 		of_property_read_u32(np, "mode_ctrl", &pservice->mode_ctrl);
 	}
-#ifdef CONFIG_MFD_SYSCON
+
 	pservice->grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
 	if (IS_ERR_OR_NULL(pservice->grf)) {
 		pservice->grf = NULL;
-#ifdef CONFIG_ARM
-		pservice->grf_base = RK_GRF_VIRT;
-#else
 		vpu_err("can't find vpu grf property\n");
 		return;
-#endif
 	}
-#else
-#ifdef CONFIG_ARM
-	pservice->grf_base = RK_GRF_VIRT;
-#else
-	vpu_err("can't find vpu grf property\n");
-	return;
-#endif
-#endif
 
 #ifdef CONFIG_RESET_CONTROLLER
 	pservice->rst_a = devm_reset_control_get(pservice->dev, "video_a");
@@ -2745,16 +2703,8 @@ static void get_hw_info(struct vpu_subdev_data *data)
 	struct vpu_dec_config *dec = &pservice->dec_config;
 	struct vpu_enc_config *enc = &pservice->enc_config;
 
-	if (of_machine_is_compatible("rockchip,rk2928") ||
-			of_machine_is_compatible("rockchip,rk3036") ||
-			of_machine_is_compatible("rockchip,rk3066") ||
-			of_machine_is_compatible("rockchip,rk3126") ||
-			of_machine_is_compatible("rockchip,rk3188"))
-		dec->max_dec_pic_width = 1920;
-	else
-		dec->max_dec_pic_width = 4096;
-
-	if (data->mode == VCODEC_RUNNING_MODE_VPU) {
+	switch (data->mode) {
+	case VCODEC_RUNNING_MODE_VPU:
 		dec->h264_support = 3;
 		dec->jpeg_support = 1;
 		dec->mpeg4_support = 2;
@@ -2793,12 +2743,26 @@ static void get_hw_info(struct vpu_subdev_data *data)
 
 		pservice->bug_dec_addr = of_machine_is_compatible
 			("rockchip,rk30xx");
-	} else if (data->mode == VCODEC_RUNNING_MODE_RKVDEC) {
+		break;
+	case VCODEC_RUNNING_MODE_RKVDEC:
 		pservice->auto_freq = true;
 		atomic_set(&pservice->freq_status, VPU_FREQ_BUT);
-	} else {
+		break;
+	default:
 		/* disable frequency switch in hevc.*/
 		pservice->auto_freq = false;
+	}
+
+	if (of_machine_is_compatible("rockchip,rk2928") ||
+			of_machine_is_compatible("rockchip,rk3036") ||
+			of_machine_is_compatible("rockchip,rk3066") ||
+			of_machine_is_compatible("rockchip,rk3126") ||
+			of_machine_is_compatible("rockchip,rk3128") ||
+			of_machine_is_compatible("rockchip,rk3188")) {
+		dec->max_dec_pic_width = 1920;
+		pservice->auto_freq = false;
+	} else {
+		dec->max_dec_pic_width = 4096;
 	}
 }
 

@@ -43,7 +43,9 @@
 /dts-v1/;
 #include "rk3368.dtsi"
 #include "rk3368-android.dtsi"
+#include "rk3368-cif-sensor.dtsi"
 #include <dt-bindings/pwm/pwm.h>
+#include <dt-bindings/sensor-dev.h>
 
 / {
 	model = "Rockchip PX5 EVB V11";
@@ -64,6 +66,29 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&uart4_xfer>;
 			interrupts = <GIC_SPI 154 IRQ_TYPE_LEVEL_HIGH 0>;
+	};
+
+	firmware {
+		android {
+			compatible = "android,firmware";
+			fstab {
+				compatible = "android,fstab";
+				system {
+					compatible = "android,system";
+					dev = "/dev/block/platform/ff0f0000.dwmmc/by-name/system";
+					type = "ext4";
+					mnt_flags = "ro,barrier=1,inode_readahead_blks=8";
+					fsmgr_flags = "wait";
+				};
+				vendor {
+					compatible = "android,vendor";
+					dev = "/dev/block/platform/ff0f0000.dwmmc/by-name/vendor";
+					type = "ext4";
+					mnt_flags = "ro,barrier=1,inode_readahead_blks=8";
+					fsmgr_flags = "wait";
+				};
+			};
+		};
 	};
 
 	xin32k: xin32k {
@@ -213,6 +238,18 @@
 		status = "okay";
 	};
 
+	wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+
+		keep_bt_power_on;
+		BT,power_gpio = <&gpio3 4 GPIO_ACTIVE_HIGH>; /* GPIO3_A4 */
+		BT,reset_gpio = <&gpio3 2 GPIO_ACTIVE_HIGH>; /* GPIO3_A2 */
+		BT,wake_gpio = <&gpio3 7 GPIO_ACTIVE_HIGH>; /* GPIO3_A7 */
+		BT,wake_host_irq = <&gpio3 3 GPIO_ACTIVE_HIGH>; /* GPIO3_A3 */
+
+		status = "okay";
+	};
+
 	vcc_sys: vcc-sys-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vcc_sys";
@@ -317,6 +354,19 @@
 	};
 };
 
+&cif_sensor {
+	status = "okay";
+};
+
+&cluster0_opp {
+	rockchip,threshold-freq = <408000>;
+	rockchip,freq-limit;
+};
+
+&cluster1_opp {
+	rockchip,threshold-freq = <1416000>;
+};
+
 &cpu_l0 {
 	cpu-supply = <&vdd_cpu>;
 };
@@ -351,6 +401,15 @@
 
 &gpu {
 	logic-supply = <&vdd_log>;
+};
+
+&isp {
+	pinctrl-names =
+		"isp_mipi_fl_prefl", "isp_flash_as_gpio",
+		"isp_flash_as_trigger_out";
+	pinctrl-0 = <&isp_prelight>;
+	pinctrl-1 = <&isp_flash_trigger_as_gpio>;
+	pinctrl-2 = <&isp_flash_trigger>;
 };
 
 &rockchip_suspend {
@@ -614,11 +673,46 @@
 &i2c1 {
 	status = "okay";
 
-	accelerometer@18 {
-		compatible = "bosch,bma250";
+	bma2x2: bma250@18 {
+		compatible = "bma2xx_acc";
+		status = "okay";
 		reg = <0x18>;
-		interrupt-parent = <&gpio2>;
-		interrupts = <17 IRQ_TYPE_LEVEL_LOW>;
+		type = <SENSOR_TYPE_ACCEL>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio2_c1>;
+		irq-gpio = <&gpio2 17 IRQ_TYPE_LEVEL_LOW>;
+		irq_enable = <1>;
+		poll_delay_ms = <200>;
+		layout = <6>;
+		reprobe_en = <1>;/* this sensor need to be probe again */
+	};
+
+	ls_stk3410: light@48 {
+		compatible = "ls_stk3410";
+		status = "okay";
+		reg = <0x48>;
+		type = <SENSOR_TYPE_LIGHT>;
+		irq_enable = <0>;
+		als_threshold_high = <100>;
+		als_threshold_low = <10>;
+		als_ctrl_gain = <2>; /* 0:x1 1:x4 2:x16 3:x64 */
+		poll_delay_ms = <100>;
+	};
+
+	ps_stk3410: proximity@48 {
+		compatible = "ps_stk3410";
+		status = "okay";
+		reg = <0x48>;
+		type = <SENSOR_TYPE_PROXIMITY>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&gpio2_c3>;
+		irq-gpio = <&gpio2 19 IRQ_TYPE_LEVEL_LOW>;
+		irq_enable = <1>;
+		ps_threshold_high = <0x200>;
+		ps_threshold_low = <0x100>;
+		ps_ctrl_gain = <3>; /* 0:x1 1:x4 2:x16 3:x64 */
+		ps_led_current = <3>; /* 0:12.5mA 1:25mA 2:50mA 3:100mA */
+		poll_delay_ms = <100>;
 	};
 };
 
@@ -657,8 +751,8 @@
 	fm1288: fm1288@60{
 		compatible = "fm1288";
 		reg = <0x60>;
-		pwd-con-gpio = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;
-		bypass-con-gpio = <&gpio0 RK_PD4 GPIO_ACTIVE_HIGH>;
+		pwd-gpios = <&gpio0 RK_PD1 GPIO_ACTIVE_HIGH>;
+		bypass-gpios = <&gpio0 RK_PD4 GPIO_ACTIVE_HIGH>;
 		status = "okay";
 	};
 
@@ -671,6 +765,8 @@
 		clock-names = "mclk";
 		spk-con-gpio = <&gpio2 RK_PC7 GPIO_ACTIVE_HIGH>;
 		lineout-con-gpio = <&gpio0 RK_PD7 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2s_8ch_mclk>;
 	};
 };
 
@@ -684,6 +780,8 @@
 	rockchip,playback-channels = <8>;
 	rockchip,capture-channels = <2>;
 	#sound-dai-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s_8ch_bus>;
 };
 
 &io_domains {
@@ -1069,6 +1167,12 @@
 	status = "okay";
 };
 
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_xfer &uart1_cts>;
+	status = "okay";
+};
+
 &uart2 {
 	status = "disabled";
 };
@@ -1105,6 +1209,48 @@
 	wireless-bluetooth {
 		uart0_rts_gpio: uart0-rts-gpio {
 			rockchip,pins = <RK_GPIO2 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	gpio0_gpio {
+		gpio0_c7: gpio0-c7 {
+			rockchip,pins = <0 RK_PC7 RK_FUNC_GPIO  &pcfg_pull_down>;
+		};
+		gpio0_a3: gpio0-a3 {
+			rockchip,pins = <0 RK_PA3 RK_FUNC_3 &pcfg_pull_none>;
+		};
+		gpio0_c2: gpio0-c2 {
+			rockchip,pins = <0 RK_PC2 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+		gpio0_c3: gpio0-c3 {
+			rockchip,pins = <0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		gpio0_c1: gpio0-c1 {
+			rockchip,pins = <0 RK_PC1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		gpio2_c1: gpio2-c1 {
+			rockchip,pins = <2 RK_PC1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		gpio2_c3: gpio2-c3 {
+			rockchip,pins = <2 RK_PC3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		gpio3_b1: gpio3-b1 {
+			rockchip,pins = <3 RK_PB1 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+
+		gpio3_b2: gpio3-b2 {
+			rockchip,pins = <3 RK_PB2 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+	i2s {
+		i2s_8ch_bus: i2s-8ch-bus {
+			rockchip,pins = <2 12 RK_FUNC_1 &pcfg_pull_none>,
+					<2 13 RK_FUNC_1 &pcfg_pull_none>,
+					<2 14 RK_FUNC_1 &pcfg_pull_none>,
+					<2 15 RK_FUNC_1 &pcfg_pull_none>,
+					<2 16 RK_FUNC_1 &pcfg_pull_none>,
+					<2 18 RK_FUNC_1 &pcfg_pull_none>;
 		};
 	};
 };

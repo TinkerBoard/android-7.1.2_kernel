@@ -9,9 +9,9 @@
 #include <linux/init.h>
 #include <linux/module.h>
 
-#include <linux/rockchip/iomap.h>
 #include <linux/rockchip/grf.h>
 
+#define RK3288_GRF_PHYS                 0xFF770000
 
 /* Project id (GPIO2_A3, GPIO2_A2, GPIO2_A1)
  * Ram id (GPIO2_B6, GPIO2_B5, GPIO2_B4)

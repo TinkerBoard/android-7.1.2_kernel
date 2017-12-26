@@ -1,9 +1,19 @@
 menuconfig WL_ROCKCHIP
 	bool "Rockchip Wireless LAN support"
+	select WIRELESS_EXT
+	select WEXT_PRIV
+	select CFG80211
+	select MAC80211
 	---help---
 	  Enable compatible Wifi drivers for Rockchip platform.
 
 if WL_ROCKCHIP
+
+config WIFI_BUILD_MODULE
+	bool "build wifi ko modules"
+	default n
+	---help---
+	  Wifi drivers will compile as ko module
 
 config WIFI_LOAD_DRIVER_WHEN_KERNEL_BOOTUP
 	bool "Wifi load driver when kernel bootup"

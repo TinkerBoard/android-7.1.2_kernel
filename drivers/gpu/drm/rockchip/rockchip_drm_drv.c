@@ -34,6 +34,7 @@
 #include <linux/fence.h>
 #include <linux/console.h>
 #include <linux/iommu.h>
+#include <linux/of_reserved_mem.h>
 
 #include <drm/rockchip_drm.h>
 
@@ -215,7 +216,7 @@ static int init_loader_memory(struct drm_device *drm_dev)
 	struct resource res;
 	int i, ret;
 
-	node = of_parse_phandle(np, "memory-region", 0);
+	node = of_parse_phandle(np, "logo-memory-region", 0);
 	if (!node)
 		return -ENOMEM;
 
@@ -1095,6 +1096,17 @@ static int rockchip_drm_create_properties(struct drm_device *dev)
 	if (!prop)
 		return -ENOMEM;
 	private->cabc_calc_pixel_num_property = prop;
+	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
+					 "EOTF", 0, 5);
+	if (!prop)
+		return -ENOMEM;
+	private->eotf_prop = prop;
+
+	prop = drm_property_create_range(dev, DRM_MODE_PROP_ATOMIC,
+					 "COLOR_SPACE", 0, 12);
+	if (!prop)
+		return -ENOMEM;
+	private->color_space_prop = prop;
 
 	return drm_mode_create_tv_properties(dev, 0, NULL);
 }
@@ -1235,8 +1247,8 @@ static int rockchip_drm_bind(struct device *dev)
 		goto err_free;
 	}
 
-	mutex_init(&private->commit.lock);
-	INIT_WORK(&private->commit.work, rockchip_drm_atomic_work);
+	mutex_init(&private->commit_lock);
+	INIT_WORK(&private->commit_work, rockchip_drm_atomic_work);
 
 	drm_dev->dev_private = private;
 
@@ -1313,6 +1325,9 @@ static int rockchip_drm_bind(struct device *dev)
 #ifndef MODULE
 	show_loader_logo(drm_dev);
 #endif
+	ret = of_reserved_mem_device_init(drm_dev->dev);
+	if (ret)
+		DRM_DEBUG_KMS("No reserved memory region assign to drm\n");
 
 	ret = rockchip_drm_fbdev_init(drm_dev);
 	if (ret)

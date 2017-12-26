@@ -898,12 +898,19 @@ static struct rockchip_mux_route_data rk3328_mux_route_data[] = {
 		.route_offset = 0x50,
 		.route_val = BIT(16) | BIT(16 + 1) | BIT(0),
 	}, {
-		/* gmac-m1-optimized_rxd0 */
+		/* gmac-m1_rxd0 */
 		.bank_num = 1,
 		.pin = 11,
 		.func = 2,
 		.route_offset = 0x50,
-		.route_val = BIT(16 + 2) | BIT(16 + 10) | BIT(2) | BIT(10),
+		.route_val = BIT(16 + 2) | BIT(2),
+	}, {
+		/* gmac-m1-optimized_rxd3 */
+		.bank_num = 1,
+		.pin = 14,
+		.func = 2,
+		.route_offset = 0x50,
+		.route_val = BIT(16 + 10) | BIT(10),
 	}, {
 		/* pdm_sdi0m0 */
 		.bank_num = 2,
@@ -2931,7 +2938,7 @@ static void rockchip_irq_resume(struct irq_data *d)
 	clk_disable(bank->clk);
 }
 
-static void rockchip_irq_gc_mask_clr_bit(struct irq_data *d)
+static void rockchip_irq_enable(struct irq_data *d)
 {
 	struct irq_chip_generic *gc = irq_data_get_irq_chip_data(d);
 	struct rockchip_pin_bank *bank = gc->private;
@@ -2940,7 +2947,7 @@ static void rockchip_irq_gc_mask_clr_bit(struct irq_data *d)
 	irq_gc_mask_clr_bit(d);
 }
 
-void rockchip_irq_gc_mask_set_bit(struct irq_data *d)
+static void rockchip_irq_disable(struct irq_data *d)
 {
 	struct irq_chip_generic *gc = irq_data_get_irq_chip_data(d);
 	struct rockchip_pin_bank *bank = gc->private;
@@ -3007,9 +3014,10 @@ static int rockchip_interrupts_register(struct platform_device *pdev,
 		gc->chip_types[0].regs.mask = GPIO_INTMASK;
 		gc->chip_types[0].regs.ack = GPIO_PORTS_EOI;
 		gc->chip_types[0].chip.irq_ack = irq_gc_ack_set_bit;
-		gc->chip_types[0].chip.irq_mask = rockchip_irq_gc_mask_set_bit;
-		gc->chip_types[0].chip.irq_unmask =
-						  rockchip_irq_gc_mask_clr_bit;
+		gc->chip_types[0].chip.irq_mask = irq_gc_mask_set_bit;
+		gc->chip_types[0].chip.irq_unmask = irq_gc_mask_clr_bit;
+		gc->chip_types[0].chip.irq_enable = rockchip_irq_enable;
+		gc->chip_types[0].chip.irq_disable = rockchip_irq_disable;
 		gc->chip_types[0].chip.irq_set_wake = irq_gc_set_wake;
 		gc->chip_types[0].chip.irq_suspend = rockchip_irq_suspend;
 		gc->chip_types[0].chip.irq_resume = rockchip_irq_resume;
@@ -3695,8 +3703,8 @@ static struct rockchip_pin_bank rk3399_pin_banks[] = {
 							 DRV_TYPE_IO_1V8_ONLY,
 							 DRV_TYPE_IO_DEFAULT,
 							 DRV_TYPE_IO_DEFAULT,
-							 0x0,
-							 0x8,
+							 0x80,
+							 0x88,
 							 -1,
 							 -1,
 							 PULL_TYPE_IO_1V8_ONLY,
@@ -3711,10 +3719,10 @@ static struct rockchip_pin_bank rk3399_pin_banks[] = {
 					      DRV_TYPE_IO_1V8_OR_3V0,
 					      DRV_TYPE_IO_1V8_OR_3V0,
 					      DRV_TYPE_IO_1V8_OR_3V0,
-					      0x20,
-					      0x28,
-					      0x30,
-					      0x38
+					      0xa0,
+					      0xa8,
+					      0xb0,
+					      0xb8
 					      ),
 	PIN_BANK_DRV_FLAGS_PULL_FLAGS(2, 32, "gpio2", DRV_TYPE_IO_1V8_OR_3V0,
 				      DRV_TYPE_IO_1V8_OR_3V0,
@@ -3754,29 +3762,29 @@ static struct rockchip_pin_ctrl rk3399_pin_ctrl = {
 
 static const struct of_device_id rockchip_pinctrl_dt_match[] = {
 	{ .compatible = "rockchip,rk2928-pinctrl",
-		.data = (void *)&rk2928_pin_ctrl },
+		.data = &rk2928_pin_ctrl },
 	{ .compatible = "rockchip,rk3036-pinctrl",
-		.data = (void *)&rk3036_pin_ctrl },
+		.data = &rk3036_pin_ctrl },
 	{ .compatible = "rockchip,rk3066a-pinctrl",
-		.data = (void *)&rk3066a_pin_ctrl },
+		.data = &rk3066a_pin_ctrl },
 	{ .compatible = "rockchip,rk3066b-pinctrl",
-		.data = (void *)&rk3066b_pin_ctrl },
+		.data = &rk3066b_pin_ctrl },
 	{ .compatible = "rockchip,rk3128-pinctrl",
-		.data = (void *)&rk3128_pin_ctrl },
+		.data = &rk3128_pin_ctrl },
 	{ .compatible = "rockchip,rk3188-pinctrl",
-		.data = (void *)&rk3188_pin_ctrl },
+		.data = &rk3188_pin_ctrl },
 	{ .compatible = "rockchip,rk3228-pinctrl",
-		.data = (void *)&rk3228_pin_ctrl },
+		.data = &rk3228_pin_ctrl },
 	{ .compatible = "rockchip,rk3288-pinctrl",
-		.data = (void *)&rk3288_pin_ctrl },
+		.data = &rk3288_pin_ctrl },
 	{ .compatible = "rockchip,rk3328-pinctrl",
-		.data = (void *)&rk3328_pin_ctrl },
+		.data = &rk3328_pin_ctrl },
 	{ .compatible = "rockchip,rk3366-pinctrl",
-		.data = (void *)&rk3366_pin_ctrl },
+		.data = &rk3366_pin_ctrl },
 	{ .compatible = "rockchip,rk3368-pinctrl",
-		.data = (void *)&rk3368_pin_ctrl },
+		.data = &rk3368_pin_ctrl },
 	{ .compatible = "rockchip,rk3399-pinctrl",
-		.data = (void *)&rk3399_pin_ctrl },
+		.data = &rk3399_pin_ctrl },
 	{},
 };
 MODULE_DEVICE_TABLE(of, rockchip_pinctrl_dt_match);

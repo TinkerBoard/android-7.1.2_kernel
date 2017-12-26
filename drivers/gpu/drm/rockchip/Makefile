@@ -13,7 +13,10 @@ obj-$(CONFIG_ROCKCHIP_DW_MIPI_DSI) += dw-mipi-dsi.o
 obj-$(CONFIG_ROCKCHIP_ANALOGIX_DP) += analogix_dp-rockchip.o
 obj-$(CONFIG_ROCKCHIP_INNO_HDMI) += inno_hdmi.o
 obj-$(CONFIG_ROCKCHIP_LVDS) += rockchip_lvds.o
+obj-$(CONFIG_ROCKCHIP_RGB) += rockchip_rgb.o
 
 obj-$(CONFIG_ROCKCHIP_DRM_BACKLIGHT) += rockchip_drm_backlight.o
 obj-$(CONFIG_DRM_ROCKCHIP) += rockchip_vop_reg.o rockchipdrm.o
 obj-$(CONFIG_ROCKCHIP_DRM_TVE) += rockchip_drm_tve.o
+
+obj-$(CONFIG_ROCKCHIP_RK3066_HDMI) += rk3066_hdmi.o

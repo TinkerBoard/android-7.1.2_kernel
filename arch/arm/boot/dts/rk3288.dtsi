@@ -1070,6 +1070,8 @@
 		dma-names = "tx", "rx";
 		clock-names = "i2s_hclk", "i2s_clk";
 		clocks = <&cru HCLK_I2S0>, <&cru SCLK_I2S0>;
+		assigned-clocks = <&cru SCLK_I2S_SRC>;
+		assigned-clock-parents = <&cru PLL_GPLL>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&i2s0_bus>;
 		rockchip,playback-channels = <8>;
@@ -1297,6 +1299,24 @@
 		clock-names = "aclk", "hclk";
 		power-domains = <&power RK3288_PD_VIO>;
 		#iommu-cells = <0>;
+		status = "disabled";
+	};
+
+	cif: cif@ff950000 {
+		compatible = "rockchip,cif";
+		reg = <0x0 0xff950000 0x0 0x400>;
+		interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cru ACLK_VIP>, <&cru HCLK_VIP>,
+			<&cru PCLK_VIP_IN>, <&cru SCLK_VIP_OUT>;
+		clock-names = "aclk_cif0", "hclk_cif0",
+				"cif0_in", "cif0_out";
+		resets = <&cru SRST_VIP>;
+		reset-names = "rst_cif";
+		pinctrl-names = "cif_pin_all";
+		pinctrl-0 = <&isp_mipi &isp_dvp_d2d9 &isp_dvp_d10d11>;
+		rockchip,grf = <&grf>;
+		rockchip,cru = <&cru>;
+		power-domains = <&power RK3288_PD_VIO>;
 		status = "disabled";
 	};
 
@@ -1613,6 +1633,41 @@
 	noc: syscon@ffac0000 {
 		compatible = "rockchip,rk3288-noc", "syscon";
 		reg = <0x0 0xffac0000 0x0 0x2000>;
+	};
+
+	nocp_core: nocp-core@ffac0400 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac0400 0x0 0x400>;
+	};
+
+	nocp_gpu: nocp-gpu@ffac0800 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac0800 0x0 0x400>;
+	};
+
+	nocp_peri: nocp-peri@ffac0c00 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac0c00 0x0 0x400>;
+	};
+
+	nocp_vpu: nocp-vpu@ffac1000 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac1000 0x0 0x400>;
+	};
+
+	nocp_vio0: nocp-vio0@ffac1400 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac1400 0x0 0x400>;
+	};
+
+	nocp_vio1: nocp-vio1@ffac1800 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac1800 0x0 0x400>;
+	};
+
+	nocp_vio2: nocp-vio2@ffac1c00 {
+		compatible = "rockchip,rk3288-nocp";
+		reg = <0x0 0xffac1c00 0x0 0x400>;
 	};
 
 	efuse: efuse@ffb40000 {
