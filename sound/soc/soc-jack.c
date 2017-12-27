@@ -20,6 +20,7 @@
 #include <linux/delay.h>
 #include <linux/export.h>
 #include <trace/events/asoc.h>
+#include <linux/kmod.h>
 
 /**
  * snd_soc_card_jack_new - Create a new jack
@@ -79,6 +80,35 @@ void snd_soc_jack_report(struct snd_soc_jack *jack, int status, int mask)
 	struct snd_soc_jack_pin *pin;
 	unsigned int sync = 0;
 	int enable;
+
+#ifdef TINKER_AUDIO
+	int ret;
+	char *envp[] = {
+		"HOME=/",
+		"PATH=/sbin:/system/sbin:/system/bin:/system/xbin",
+		NULL,
+	};
+	char *argv_in[] = {
+		"/system/bin/jack_auto_switch.sh",
+		"in",
+		NULL,
+	};
+	char *argv_out[] = {
+		"/system/bin/jack_auto_switch.sh",
+		"out",
+		NULL,
+	};
+
+	dev_info(jack->card->dev, "audio jack plug %s\n", (status ? "in" : "out"));
+
+	if (status)
+		ret = call_usermodehelper(argv_in[0], argv_in, envp, UMH_WAIT_PROC);
+	else
+		ret = call_usermodehelper(argv_out[0], argv_out, envp, UMH_WAIT_PROC);
+
+	if (ret != 0)
+		dev_err(jack->card->dev, "call_usermodehelper fail, ret=%d, status=%d\n", ret, status);
+#endif
 
 	trace_snd_soc_jack_report(jack, mask, status);
 
