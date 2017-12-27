@@ -2,6 +2,8 @@
 # Makefile for ALSA
 #
 
+ccflags-y += -DTINKER_AUDIO
+
 snd-usb-audio-objs := 	card.o \
 			clock.o \
 			endpoint.o \

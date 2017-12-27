@@ -67,6 +67,11 @@
 #include "power.h"
 #include "stream.h"
 
+#ifdef TINKER_AUDIO
+#define USB_AUDIO_EXT_CARD_IDX	1
+#define USB_AUDIO_ONBOARD_CARD_IDX	3
+#endif
+
 MODULE_AUTHOR("Takashi Iwai <tiwai@suse.de>");
 MODULE_DESCRIPTION("USB Audio");
 MODULE_LICENSE("GPL");
@@ -350,8 +355,19 @@ static int snd_usb_audio_create(struct usb_interface *intf,
 		return -ENXIO;
 	}
 
+#ifdef TINKER_AUDIO
+	if (le16_to_cpu(dev->descriptor.idVendor) == 0x0bda && le16_to_cpu(dev->descriptor.idProduct) == 0x481a) {
+		err = snd_card_new(&intf->dev, USB_AUDIO_ONBOARD_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
+		snd_printk(KERN_INFO "onboard usb card\n");
+	} else {
+		err = snd_card_new(&intf->dev, USB_AUDIO_EXT_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
+		snd_printk(KERN_INFO "external usb card\n");
+	}
+#else
 	err = snd_card_new(&intf->dev, index[idx], id[idx], THIS_MODULE,
 			   0, &card);
+#endif
+
 	if (err < 0) {
 		dev_err(&dev->dev, "cannot create card instance %d\n", idx);
 		return err;
