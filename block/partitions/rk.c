@@ -277,10 +277,16 @@ static int parse_cmdline_partitions(sector_t n,
 static void rkpart_bootmode_fixup(void)
 {
 	const char mode_emmc[] = " androidboot.mode=emmc";
+	const char mode_sd[] = " androidboot.mode=sd";
 	const char mode_nvme[] = " androidboot.mode=nvme";
 	const char charger[] = " androidboot.charger.emmc=1";
 	char *new_command_line;
 	size_t saved_command_line_len = strlen(saved_command_line);
+
+	if (strstr(saved_command_line, "androidboot.mode")) {
+		dbg(("bootmode already exist, skip fixup!!"));
+		return;
+	}
 
 	if (strstr(saved_command_line, "androidboot.mode=charger")) {
 		new_command_line = kzalloc(saved_command_line_len +
@@ -293,9 +299,12 @@ static void rkpart_bootmode_fixup(void)
 		if (strstr(saved_command_line, "storagemedia=nvme"))
 			sprintf(new_command_line, "%s%s",
 				saved_command_line, mode_nvme);
-		else
+		else if (strstr(saved_command_line, "storagemedia=emmc"))
 			sprintf(new_command_line, "%s%s",
 				saved_command_line, mode_emmc);
+		else
+			sprintf(new_command_line, "%s%s",
+				saved_command_line, mode_sd);
 	}
 	saved_command_line = new_command_line;
 }
@@ -303,14 +312,20 @@ static void rkpart_bootmode_fixup(void)
 int rkpart_partition(struct parsed_partitions *state)
 {
 	int num_parts = 0, i;
+	char *sd_boot = NULL;
 	sector_t n = get_capacity(state->bdev->bd_disk);
 	struct rk_partition *parts = NULL;
+
+	rkpart_bootmode_fixup();
+
+	sd_boot = strstr(saved_command_line, "storagemedia=sd");
 
 	if (n < SECTOR_1G)
 		return 0;
 
-	//if (!state->bdev->bd_disk->is_rk_disk)
-	//	return 0;
+	if (!state->bdev->bd_disk->is_rk_disk &&
+			!(state->bdev->bd_disk->is_sdcard && sd_boot))
+		return 0;
 
         /* Fixme: parameter should be coherence with part table */
 	cmdline = strstr(saved_command_line, "mtdparts=");
@@ -335,8 +350,6 @@ int rkpart_partition(struct parsed_partitions *state)
 				(u64)(parts[i].from + parts[i].size) * 512,
 				(u64)parts[i].size / 2048);
 	}
-
-	rkpart_bootmode_fixup();
 
 	return 1;
 }

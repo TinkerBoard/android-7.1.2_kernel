@@ -2874,8 +2874,13 @@ static int mmc_blk_probe(struct mmc_card *card)
 	if (card->host->restrict_caps & RESTRICT_CARD_TYPE_EMMC) {
 		this_card = card;
 		md->disk->is_rk_disk = true;
+		md->disk->is_sdcard = false;
+	} else if (card->host->restrict_caps & RESTRICT_CARD_TYPE_SD) {
+		md->disk->is_rk_disk = false;
+		md->disk->is_sdcard = true;
 	} else {
 		md->disk->is_rk_disk = false;
+		md->disk->is_sdcard = false;
 	}
 #endif
 

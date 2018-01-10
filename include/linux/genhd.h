@@ -204,6 +204,8 @@ struct gendisk {
 
 	/* Flag of rockchip specific disk: eMMC/eSD, NVMe, etc. */
 	bool is_rk_disk;
+    /* Add SD card flag */
+	bool is_sdcard;
 	int flags;
 	struct device *driverfs_dev;  // FIXME: remove
 	struct kobject *slave_dir;
