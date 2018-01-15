@@ -323,8 +323,9 @@ int rkpart_partition(struct parsed_partitions *state)
 	if (n < SECTOR_1G)
 		return 0;
 
-	if (!state->bdev->bd_disk->is_rk_disk &&
-			!(state->bdev->bd_disk->is_sdcard && sd_boot))
+	// Only boot storage need rk partition.
+	if (!((state->bdev->bd_disk->is_rk_disk && !sd_boot) ||
+			(state->bdev->bd_disk->is_sdcard && sd_boot)))
 		return 0;
 
         /* Fixme: parameter should be coherence with part table */
