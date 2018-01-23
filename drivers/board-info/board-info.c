@@ -17,7 +17,7 @@
  * Ram id (GPIO2_B6, GPIO2_B5, GPIO2_B4)
  * PCB id (GPIO2_B2, GPIO2_B1 ,GPIO2_B0)
  */
-#define GPIO_offest 1000
+#define GPIO_offest 0
 #define GPIO2_A1 (57+GPIO_offest)
 #define GPIO2_A2 (58+GPIO_offest)
 #define GPIO2_A3 (59+GPIO_offest)
