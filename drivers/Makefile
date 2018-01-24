@@ -178,3 +178,4 @@ obj-$(CONFIG_TEE)		+= tee/
 obj-$(CONFIG_RK_NAND)		+= rk_nand/
 obj-$(CONFIG_RK_HEADSET)	+= headset_observe/
 obj-y				+= board-info/
+obj-y				+= miniarm/
