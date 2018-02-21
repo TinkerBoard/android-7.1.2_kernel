@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 #ifndef __RKCAMSYS_HEAR_H__
 #define __RKCAMSYS_HEAR_H__
 
@@ -33,8 +34,15 @@
 	1) support sensor powerup sequence configurable.
 *v0.d.0:
 	1) powerup sequence type moved to common_head.h.
+*v0.e.0:
+	1) add fs_id, fe_id and some reserved bytes in struct camsys_irqsta_s.
+*v0.f.0:
+	1) add pid in struct camsys_irqsta_s.
+*v1.0.0:
+	1) add enum camsys_mipiphy_dir_e.
 */
-#define CAMSYS_HEAD_VERSION           KERNEL_VERSION(0,0xd,0)
+
+#define CAMSYS_HEAD_VERSION           KERNEL_VERSION(1, 0x0, 0)
 
 #define CAMSYS_MARVIN_DEVNAME         "camsys_marvin"
 #define CAMSYS_CIF0_DEVNAME           "camsys_cif0"
@@ -60,6 +68,10 @@
 typedef struct camsys_irqsta_s {
     unsigned int ris;                 //Raw interrupt status
     unsigned int mis;                 //Masked interrupt status
+	unsigned int fs_id; // frame number from Frame Start (FS) short packet
+	unsigned int fe_id; // frame number from Frame End (FE) short packet
+	int pid;
+	unsigned int reserved[3];
 } camsys_irqsta_t;
 
 typedef struct camsys_irqcnnt_s {
@@ -67,7 +79,7 @@ typedef struct camsys_irqcnnt_s {
     unsigned int timeout;             //us
 
     unsigned int mis;
-    unsigned int icr;                 
+	unsigned int icr;
 } camsys_irqcnnt_t;
 
 typedef enum camsys_mmap_type_e {     //this type can be filled in mmap offset argument      
@@ -165,10 +177,16 @@ typedef struct camsys_flash_info_s {
     camsys_gpio_info_t        fl_en;
 } camsys_flash_info_t;
 
+enum camsys_mipiphy_dir_e {
+	CamSys_Mipiphy_Rx = 0,
+	CamSys_Mipiphy_Tx = 1,
+};
+
 typedef struct camsys_mipiphy_s {
     unsigned int                data_en_bit;        // data lane enable bit;
     unsigned int                bit_rate;           // Mbps/lane
     unsigned int                phy_index;          // phy0,phy1
+	enum camsys_mipiphy_dir_e   dir;            // direction
 } camsys_mipiphy_t;
 
 typedef enum camsys_fmt_e {

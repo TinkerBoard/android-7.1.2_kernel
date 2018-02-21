@@ -96,7 +96,8 @@ static struct mpp_ctx *rockchip_mpp_vepu_init(struct rockchip_mpp_dev *mpp,
 	if (extinf_len > 0) {
 		u32 ext_cpy = min_t(size_t, extinf_len, sizeof(ctx->ext_inf));
 
-		if (copy_from_user(&ctx->ext_inf, (u8 *)src + reg_len,
+		if (copy_from_user(&ctx->ext_inf, (u8 *)src +
+				   reg_len * sizeof(u32),
 				   ext_cpy)) {
 			mpp_err("copy_from_user failed when extra info\n");
 			kfree(ctx);
@@ -287,6 +288,8 @@ static void rockchip_mpp_vepu_power_on(struct rockchip_mpp_dev *mpp)
 		clk_prepare_enable(enc->aclk);
 	if (enc->hclk)
 		clk_prepare_enable(enc->hclk);
+	if (enc->cclk)
+		clk_prepare_enable(enc->cclk);
 }
 
 static void rockchip_mpp_vepu_power_off(struct rockchip_mpp_dev *mpp)
@@ -297,6 +300,8 @@ static void rockchip_mpp_vepu_power_off(struct rockchip_mpp_dev *mpp)
 		clk_disable_unprepare(enc->hclk);
 	if (enc->aclk)
 		clk_disable_unprepare(enc->aclk);
+	if (enc->cclk)
+		clk_disable_unprepare(enc->cclk);
 }
 
 static int rockchip_mpp_vepu_probe(struct rockchip_mpp_dev *mpp)
@@ -315,6 +320,12 @@ static int rockchip_mpp_vepu_probe(struct rockchip_mpp_dev *mpp)
 	enc->hclk = devm_clk_get(mpp->dev, "hclk_vcodec");
 	if (IS_ERR_OR_NULL(enc->hclk)) {
 		dev_err(mpp->dev, "failed on clk_get hclk\n");
+		goto fail;
+	}
+
+	enc->cclk = devm_clk_get(mpp->dev, "clk_core");
+	if (IS_ERR_OR_NULL(enc->cclk)) {
+		dev_err(mpp->dev, "failed on clk_get cclk\n");
 		goto fail;
 	}
 

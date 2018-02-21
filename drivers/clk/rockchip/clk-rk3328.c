@@ -322,15 +322,15 @@ static struct rockchip_clk_branch rk3328_clk_branches[] __initdata = {
 			RK3328_CLKGATE_CON(14), 1, GFLAGS),
 
 	/* PD_DDR */
-	COMPOSITE(0, "clk_ddr_src", mux_ddrphy_p, CLK_IGNORE_UNUSED,
-			RK3328_CLKSEL_CON(3), 8, 2, MFLAGS, 0, 3, DFLAGS | CLK_DIVIDER_POWER_OF_TWO,
-			RK3328_CLKGATE_CON(0), 4, GFLAGS),
-	FACTOR(0, "clk_ddr", "clk_ddr_src", 0, 1, 2),
-	GATE(0, "clk_ddrmsch", "clk_ddr", CLK_IGNORE_UNUSED,
+	COMPOSITE_DDRCLK(SCLK_DDRCLK, "sclk_ddrc", mux_ddrphy_p, 0,
+			 RK3328_CLKSEL_CON(3), 8, 2, 0, 3,
+			 ROCKCHIP_DDRCLK_SIP_V2),
+
+	GATE(0, "clk_ddrmsch", "sclk_ddrc", CLK_IGNORE_UNUSED,
 			RK3328_CLKGATE_CON(18), 6, GFLAGS),
-	GATE(0, "clk_ddrupctl", "clk_ddr", CLK_IGNORE_UNUSED,
+	GATE(0, "clk_ddrupctl", "sclk_ddrc", CLK_IGNORE_UNUSED,
 			RK3328_CLKGATE_CON(18), 5, GFLAGS),
-	GATE(0, "aclk_ddrupctl", "clk_ddr", CLK_IGNORE_UNUSED,
+	GATE(0, "aclk_ddrupctl", "sclk_ddrc", CLK_IGNORE_UNUSED,
 			RK3328_CLKGATE_CON(18), 4, GFLAGS),
 	GATE(0, "clk_ddrmon", "xin24m", CLK_IGNORE_UNUSED,
 			RK3328_CLKGATE_CON(0), 6, GFLAGS),
@@ -551,15 +551,15 @@ static struct rockchip_clk_branch rk3328_clk_branches[] __initdata = {
 	GATE(0, "hclk_rkvenc_niu", "hclk_rkvenc", CLK_IGNORE_UNUSED,
 			RK3328_CLKGATE_CON(25), 1, GFLAGS),
 	GATE(ACLK_H265, "aclk_h265", "aclk_rkvenc", 0,
-			RK3328_CLKGATE_CON(25), 0, GFLAGS),
+			RK3328_CLKGATE_CON(25), 2, GFLAGS),
 	GATE(PCLK_H265, "pclk_h265", "hclk_rkvenc", 0,
-			RK3328_CLKGATE_CON(25), 1, GFLAGS),
+			RK3328_CLKGATE_CON(25), 3, GFLAGS),
 	GATE(ACLK_H264, "aclk_h264", "aclk_rkvenc", 0,
-			RK3328_CLKGATE_CON(25), 0, GFLAGS),
+			RK3328_CLKGATE_CON(25), 4, GFLAGS),
 	GATE(HCLK_H264, "hclk_h264", "hclk_rkvenc", 0,
-			RK3328_CLKGATE_CON(25), 1, GFLAGS),
+			RK3328_CLKGATE_CON(25), 5, GFLAGS),
 	GATE(ACLK_AXISRAM, "aclk_axisram", "aclk_rkvenc", CLK_IGNORE_UNUSED,
-			RK3328_CLKGATE_CON(25), 0, GFLAGS),
+			RK3328_CLKGATE_CON(25), 6, GFLAGS),
 
 	COMPOSITE(SCLK_VENC_CORE, "sclk_venc_core", mux_4plls_p, 0,
 			RK3328_CLKSEL_CON(51), 14, 2, MFLAGS, 8, 5, DFLAGS,
@@ -922,7 +922,7 @@ static void __init rk3328_clk_init(struct device_node *np)
 				     &rk3328_cpuclk_data, rk3328_cpuclk_rates,
 				     ARRAY_SIZE(rk3328_cpuclk_rates));
 
-	rockchip_register_softrst(np, 11, reg_base + RK3328_SOFTRST_CON(0),
+	rockchip_register_softrst(np, 12, reg_base + RK3328_SOFTRST_CON(0),
 				  ROCKCHIP_SOFTRST_HIWORD_MASK);
 
 	rockchip_register_restart_notifier(ctx, RK3328_GLB_SRST_FST, NULL);

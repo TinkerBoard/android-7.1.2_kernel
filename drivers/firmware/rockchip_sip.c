@@ -15,6 +15,9 @@
 #include <linux/io.h>
 #include <linux/rockchip/rockchip_sip.h>
 #include <asm/cputype.h>
+#ifdef CONFIG_ARM
+#include <asm/psci.h>
+#endif
 #include <asm/smp_plat.h>
 #include <uapi/linux/psci.h>
 #include <linux/ptrace.h>
@@ -122,6 +125,14 @@ error:
 struct arm_smccc_res sip_smc_mcu_el3fiq(u32 arg0, u32 arg1, u32 arg2)
 {
 	return __invoke_sip_fn_smc(SIP_MCU_EL3FIQ_CFG, arg0, arg1, arg2);
+}
+
+struct arm_smccc_res sip_smc_vpu_reset(u32 arg0, u32 arg1, u32 arg2)
+{
+	struct arm_smccc_res res;
+
+	res = __invoke_sip_fn_smc(PSCI_SIP_VPU_RESET, arg0, arg1, arg2);
+	return res;
 }
 
 /************************** fiq debugger **************************************/
@@ -307,6 +318,9 @@ void sip_fiq_debugger_enable_fiq(bool enable, uint32_t tgt_cpu)
 static __init int sip_implement_version_init(void)
 {
 	struct arm_smccc_res res;
+
+	if (!psci_smp_available())
+		return 0;
 
 	res = __invoke_sip_fn_smc(SIP_SIP_VERSION, SIP_IMPLEMENT_V2,
 				  SECURE_REG_WR, 0);

@@ -6662,7 +6662,8 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync
 
 
 #ifdef CONFIG_SCHED_WALT
-		if (!walt_disabled && sysctl_sched_use_walt_cpu_util)
+		if (!walt_disabled && sysctl_sched_use_walt_cpu_util &&
+			p->state == TASK_WAKING)
 			delta = task_util(p);
 #endif
 		/* Not enough spare capacity on previous cpu */
@@ -9358,7 +9359,7 @@ static int active_load_balance_cpu_stop(void *data)
 	struct rq *target_rq = cpu_rq(target_cpu);
 	struct sched_domain *sd = NULL;
 	struct task_struct *p = NULL;
-	struct task_struct *push_task;
+	struct task_struct *push_task = NULL;
 	int push_task_detached = 0;
 	struct lb_env env = {
 		.sd		= sd,

@@ -126,8 +126,8 @@ static ssize_t accel_calibration_show(struct class *class,
 
 #define ACCEL_CAPTURE_TIMES 20
 #define ACCEL_SENSITIVE 16384
-/* +-0.6 * 16384 / 9.8 */
-#define ACCEL_OFFSET_MAX 1000
+/* +-1 * 16384 / 9.8 */
+#define ACCEL_OFFSET_MAX 1600
 static int accel_do_calibration(struct sensor_private_data *sensor)
 {
 	int i;
@@ -483,17 +483,18 @@ static int sensor_reset_rate(struct i2c_client *client, int rate)
 	struct sensor_private_data *sensor = (struct sensor_private_data *) i2c_get_clientdata(client);
 	int result = 0;
 
-	if ((rate < 5) || (rate > 250)) {
-		dev_err(&client->dev, "sensor rate %d out of rang\n", rate);
-		return -1;
-	}
+	if (rate < 5)
+		rate = 5;
+	else if (rate > 200)
+		rate = 200;
+
 	dev_info(&client->dev, "set sensor poll time to %dms\n", rate);
 
 	/* work queue is always slow, we need more quickly to match hal rate */
-	if (sensor->pdata->poll_delay_ms == (rate - 2))
+	if (sensor->pdata->poll_delay_ms == (rate - 5))
 		return 0;
 
-	sensor->pdata->poll_delay_ms = rate - 2;
+	sensor->pdata->poll_delay_ms = rate - 5;
 
 	if (sensor->status_cur == SENSOR_ON) {
 		if (!sensor->pdata->irq_enable) {
@@ -610,7 +611,7 @@ static void sensor_resume(struct early_suspend *h)
 #endif
 
 #ifdef CONFIG_PM
-static int sensor_of_suspend(struct device *dev)
+static int __maybe_unused sensor_of_suspend(struct device *dev)
 {
 	struct sensor_private_data *sensor = dev_get_drvdata(dev);
 
@@ -620,7 +621,7 @@ static int sensor_of_suspend(struct device *dev)
 	return 0;
 }
 
-static int sensor_of_resume(struct device *dev)
+static int __maybe_unused sensor_of_resume(struct device *dev)
 {
 	struct sensor_private_data *sensor = dev_get_drvdata(dev);
 

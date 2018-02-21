@@ -196,8 +196,10 @@ update_connector_routing(struct drm_atomic_state *state, int conn_idx)
 	if (funcs->atomic_best_encoder)
 		new_encoder = funcs->atomic_best_encoder(connector,
 							 connector_state);
-	else
+	else if (funcs->best_encoder)
 		new_encoder = funcs->best_encoder(connector);
+	else
+		new_encoder = drm_atomic_helper_best_encoder(connector);
 
 	if (!new_encoder) {
 		DRM_DEBUG_ATOMIC("No suitable encoder found for [CONNECTOR:%d:%s]\n",
@@ -1558,6 +1560,26 @@ void drm_atomic_helper_commit_planes(struct drm_device *dev,
 	struct drm_connector_state *old_conn_state;
 	int i;
 
+	for_each_connector_in_state(old_state, connector, old_conn_state, i) {
+		const struct drm_connector_helper_funcs *funcs;
+
+		if (!connector->state->crtc)
+			continue;
+
+		if (!connector->state->crtc->state->active)
+			continue;
+
+		funcs = connector->helper_private;
+
+		if (!funcs || !funcs->atomic_begin)
+			continue;
+
+		DRM_DEBUG_ATOMIC("flush beginning [CONNECTOR:%d:%s]\n",
+				 connector->base.id, connector->name);
+
+		funcs->atomic_begin(connector, old_conn_state);
+	}
+
 	for_each_crtc_in_state(old_state, crtc, old_crtc_state, i) {
 		const struct drm_crtc_helper_funcs *funcs;
 
@@ -2700,6 +2722,23 @@ backoff:
 	goto retry;
 }
 EXPORT_SYMBOL(drm_atomic_helper_connector_dpms);
+
+/**
+ * drm_atomic_helper_best_encoder - Helper for &drm_connector_helper_funcs
+ *                                  ->best_encoder callback
+ * @connector: Connector control structure
+ *
+ * This is a &drm_connector_helper_funcs ->best_encoder callback helper for
+ * connectors that support exactly 1 encoder, statically determined at driver
+ * init time.
+ */
+struct drm_encoder *
+drm_atomic_helper_best_encoder(struct drm_connector *connector)
+{
+	WARN_ON(connector->encoder_ids[1]);
+	return drm_encoder_find(connector->dev, connector->encoder_ids[0]);
+}
+EXPORT_SYMBOL(drm_atomic_helper_best_encoder);
 
 /**
  * DOC: atomic state reset and initialization

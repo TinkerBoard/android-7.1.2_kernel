@@ -45,6 +45,7 @@
 #include <linux/platform_device.h>
 #include <linux/phy/phy.h>
 #include <linux/platform_data/s3c-hsotg.h>
+#include <linux/reset.h>
 
 #include <linux/usb/of.h>
 
@@ -349,6 +350,25 @@ static int dwc2_lowlevel_hw_init(struct dwc2_hsotg *hsotg)
 {
 	int i, clk, ret;
 
+	hsotg->reset = devm_reset_control_get_optional(hsotg->dev, "dwc2");
+	if (IS_ERR(hsotg->reset)) {
+		ret = PTR_ERR(hsotg->reset);
+		switch (ret) {
+		case -EINVAL:
+		case -ENOENT:
+		case -ENOTSUPP:
+			hsotg->reset = NULL;
+			break;
+		default:
+			dev_err(hsotg->dev, "error getting reset control %d\n",
+				ret);
+			return ret;
+		}
+	}
+
+	if (hsotg->reset)
+		reset_control_deassert(hsotg->reset);
+
 	/* Set default UTMI width */
 	hsotg->phyif = GUSBCFG_PHYIF16;
 
@@ -454,6 +474,9 @@ static int dwc2_driver_remove(struct platform_device *dev)
 
 	if (hsotg->ll_hw_enabled)
 		dwc2_lowlevel_hw_disable(hsotg);
+
+	if (hsotg->reset)
+		reset_control_assert(hsotg->reset);
 
 	return 0;
 }
@@ -598,6 +621,11 @@ static int dwc2_driver_probe(struct platform_device *dev)
 
 	/* Validate parameter values */
 	dwc2_set_parameters(hsotg, params);
+
+	if (of_device_is_compatible(hsotg->dev->of_node,
+				    "rockchip,rk3066-usb"))
+		hsotg->core_params->host_nperio_tx_fifo_size =
+					params->host_nperio_tx_fifo_size;
 
 	dwc2_force_dr_mode(hsotg);
 

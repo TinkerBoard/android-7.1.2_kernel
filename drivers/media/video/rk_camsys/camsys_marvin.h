@@ -1,9 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 #ifndef __CAMSYS_MARVIN_H__
 #define __CAMSYS_MARVIN_H__
 
 #include "camsys_internal.h"
 
 #define CAMSYS_MARVIN_IRQNAME                   "MarvinIrq"
+
+#define MIS_V_START	BIT(6)
 
 #define MRV_ISP_BASE                            0x400
 #define MRV_ISP_RIS                             (MRV_ISP_BASE + 0x1c0)
@@ -13,6 +16,7 @@
 #define MRV_MIPI_BASE                           0x1C00
 #define MRV_MIPI_MIS                            (MRV_MIPI_BASE + 0x10)
 #define MRV_MIPI_ICR                            (MRV_MIPI_BASE + 0x14)
+#define MRV_MIPI_FRAME                          (MRV_MIPI_BASE + 0x40)
 
 #define MRV_MI_BASE                             (0x1400)
 
