@@ -192,10 +192,6 @@ static int tc358762_disable(struct drm_panel *panel)
 	if (!p->enabled)
 		return 0;
 
-	printk("panel disable\n");
-
-	tinker_mcu_set_bright(0x00);
-
 	if (p->backlight) {
 		p->backlight->props.power = FB_BLANK_POWERDOWN;
 		backlight_update_status(p->backlight);
@@ -203,6 +199,9 @@ static int tc358762_disable(struct drm_panel *panel)
 
 	if (p->desc && p->desc->delay.disable)
 		msleep(p->desc->delay.disable);
+
+	printk("panel disable\n");
+	tinker_mcu_set_bright(0x0);
 
 	p->enabled = false;
 
@@ -305,11 +304,8 @@ static int tc358762_enable(struct drm_panel *panel)
 
 	printk("panel enable\n");
 
-	if(trigger_bridge) {
-		pr_info("tinker_mcu_screen_power_up");
-		tinker_mcu_screen_power_up();
-		trigger_bridge = 0;
-	}
+	pr_info("tinker_mcu_screen_power_up");
+	tinker_mcu_screen_power_up();
 
 	tc358762_dsi_init(p);
 

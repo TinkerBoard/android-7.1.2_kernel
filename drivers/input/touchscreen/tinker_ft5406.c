@@ -184,7 +184,7 @@ static void fts_report_value(struct tinker_ft5406_data *ts_data)
 }
 
 extern int tinker_mcu_is_connected(void);
-
+extern int tinker_mcu_is_mcu_power_on(void);
 static void tinker_ft5406_work(struct work_struct *work)
 {
 	struct tinker_ft5406_data *ts_data
@@ -196,7 +196,7 @@ static void tinker_ft5406_work(struct work_struct *work)
 		ret = fts_check_fw_ver(ts_data->client);
 		if (ret == 0)
 			break;
-		LOG_INFO("checking touch ic, countdown: %d\n", count);
+		LOG_ERR("checking touch ic, countdown: %d\n", count);
 		msleep(1000);
 		count--;
 	}
@@ -207,14 +207,16 @@ static void tinker_ft5406_work(struct work_struct *work)
 
 	//polling 60fps
 	while(1) {
-		td_status = fts_read_td_status(ts_data);
-		if (td_status < VALID_TD_STATUS_VAL+1 && (td_status > 0 || ts_data->known_ids != 0)) {
-			memset(event, -1, sizeof(struct ts_event));
-			event->touch_point = td_status;
-			ret = fts_read_touchdata(ts_data);
-			if (ret == 0)
-				fts_report_value(ts_data);
-		}
+	    if (tinker_mcu_is_mcu_power_on()) {
+			td_status = fts_read_td_status(ts_data);
+			if (td_status < VALID_TD_STATUS_VAL+1 && (td_status > 0 || ts_data->known_ids != 0)) {
+				memset(event, -1, sizeof(struct ts_event));
+				event->touch_point = td_status;
+				ret = fts_read_touchdata(ts_data);
+				if (ret == 0)
+					fts_report_value(ts_data);
+			}
+	    }
 		msleep_interruptible(17);
 	}
 }

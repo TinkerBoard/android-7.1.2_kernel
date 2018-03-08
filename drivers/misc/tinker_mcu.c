@@ -30,111 +30,91 @@
 static struct tinker_mcu_data *g_mcu_data;
 static int connected = 0;
 static int lcd_bright_level = 0;
+static int is_mcu_power_on = 0;
 
-static int is_hex(char num)
+//https://github.com/raspberrypi/linux/blob/17b06b5ef4c3d9c78524e5e23ae4c4f8e3d74aa1/drivers/gpu/drm/panel/panel-raspberrypi-touchscreen.c#L435
+//linux/drivers/gpu/drm/panel/panel-raspberrypi-touchscreen.c
+
+/* I2C registers of the Atmel microcontroller. */
+enum REG_ADDR {
+	REG_ID = 0x80,
+	REG_PORTA, // BIT(2) for horizontal flip, BIT(3) for vertical flip
+	REG_PORTB,
+	REG_PORTC,
+	REG_PORTD,
+	REG_POWERON,
+	REG_PWM,
+	REG_DDRA,
+	REG_DDRB,
+	REG_DDRC,
+	REG_DDRD,
+	REG_TEST,
+	REG_WR_ADDRL,
+	REG_WR_ADDRH,
+	REG_READH,
+	REG_READL,
+	REG_WRITEH,
+	REG_WRITEL,
+	REG_ID2,
+};
+
+static int tinker_mcu_i2c_read(struct tinker_mcu_data *ts, u8 reg)
 {
-	//0-9, a-f, A-F
-	if ((47 < num && num < 58) || (64 < num && num < 71) || (96 < num && num < 103))
-		return 1;
-	return 0;
+	return i2c_smbus_read_byte_data(ts->client, reg);
 }
 
-static int string_to_byte(const char *source, unsigned char *destination, int size)
-{
-	int i = 0, counter = 0;
-	char c[3] = {0};
-	unsigned char bytes;
-
-	if (size%2 == 1)
-		return -EINVAL;
-
-	for(i = 0; i < size; i++){
-		if(!is_hex(source[i])) {
-			return -EINVAL;
-		}
-		if(0 == i%2){
-			c[0] = source[i];
-			c[1] = source[i+1];
-			sscanf(c, "%hhx", &bytes);
-			destination[counter] = bytes;
-			counter++;
-		}
-	}
-	return 0;
-}
-
-static int send_cmds(struct i2c_client *client, const char *buf)
-{
-	int ret, size = strlen(buf);
-	unsigned char byte_cmd[size/2];
-
-	if ((size%2) != 0) {
-		LOG_ERR("size should be even\n");
-		return -EINVAL;
-	}
-
-	LOG_INFO("%s\n", buf);
-
-	string_to_byte(buf, byte_cmd, size);
-
-	ret = i2c_master_send(client, byte_cmd, size/2);
-	if (ret <= 0) {
-		LOG_ERR("send command failed, ret = %d\n", ret);
-		return ret!=0 ? ret : -ECOMM;
-	}
-	msleep(20);
-	return 0;
-}
-
-static int recv_cmds(struct i2c_client *client, char *buf, int size)
+static void tinker_mcu_i2c_write(struct tinker_mcu_data *ts,
+				      u8 reg, u8 val)
 {
 	int ret;
 
-	ret = i2c_master_recv(client, buf, size);
-	if (ret <= 0) {
-		LOG_ERR("receive commands failed, %d\n", ret);
-		return ret!=0 ? ret : -ECOMM;
-	}
-	msleep(20);
-	return 0;
+	ret = i2c_smbus_write_byte_data(ts->client, reg, val);
+	if (ret)
+		LOG_ERR("I2C write failed: %d\n", ret);
 }
 
 static int init_cmd_check(struct tinker_mcu_data *mcu_data)
 {
 	int ret;
-	char recv_buf[1] = {0};
-
-	ret = send_cmds(mcu_data->client, "80");
+	ret = tinker_mcu_i2c_read(mcu_data, REG_ID);
 	if (ret < 0)
 		goto error;
 
-	recv_cmds(mcu_data->client, recv_buf, 1);
-	if (ret < 0)
-		goto error;
-
-	LOG_INFO("recv_cmds: 0x%X\n", recv_buf[0]);
-	if (recv_buf[0] != 0xDE && recv_buf[0] != 0xC3) {
+	printk(KERN_ERR "recv_cmds: 0x%X\n", ret);
+	if (ret != 0xDE && ret != 0xC3) {
 		LOG_ERR("read wrong info\n");
 		ret = -EINVAL;
 		goto error;
-
 	}
 	return 0;
-
 error:
 	return ret;
 }
 
+
+
 int tinker_mcu_screen_power_up(void)
 {
+	int i=0;
 	if (!connected)
 		return -ENODEV;
 
 	LOG_INFO("\n");
-	send_cmds(g_mcu_data->client, "8500");
+
+	/*Turn off at boot, so we can cleanly sequence powering on.*/
+	is_mcu_power_on =0;
+	tinker_mcu_i2c_write(g_mcu_data, REG_POWERON, 0);
+
 	msleep(800);
-	send_cmds(g_mcu_data->client, "8501");
-	send_cmds(g_mcu_data->client, "8104");
+
+	tinker_mcu_i2c_write(g_mcu_data, REG_POWERON, 1);
+	/* Wait for nPWRDWN to go low to indicate poweron is done. */
+	for (i = 0; i < 100; i++) {
+		if (tinker_mcu_i2c_read(g_mcu_data, REG_PORTB) & 1)
+			break;
+	}
+	tinker_mcu_i2c_write(g_mcu_data, REG_PORTA, BIT(2));
+	is_mcu_power_on =1;
 
 	return 0;
 }
@@ -142,9 +122,6 @@ EXPORT_SYMBOL_GPL(tinker_mcu_screen_power_up);
 
 int tinker_mcu_set_bright(int bright)
 {
-	unsigned char cmd[2];
-	int ret;
-
 	if (!connected)
 		return -ENODEV;
 
@@ -153,13 +130,13 @@ int tinker_mcu_set_bright(int bright)
 
 	LOG_INFO("bright = 0x%x\n", bright);
 
-	cmd[0] = 0x86;
-	cmd[1] = bright;
-
-	ret = i2c_master_send(g_mcu_data->client, cmd, 2);
-	if (ret <= 0) {
-		LOG_ERR("send command failed, ret = %d\n", ret);
-		return ret != 0 ? ret : -ECOMM;
+	if (bright==0) {
+		tinker_mcu_i2c_write(g_mcu_data, REG_PWM, 0);
+		tinker_mcu_i2c_write(g_mcu_data, REG_POWERON, 0);
+		udelay(1);
+		is_mcu_power_on=0;
+	} else {
+		tinker_mcu_i2c_write(g_mcu_data, REG_PWM, bright);
 	}
 
 	lcd_bright_level = bright;
@@ -167,6 +144,13 @@ int tinker_mcu_set_bright(int bright)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(tinker_mcu_set_bright);
+
+int tinker_mcu_is_mcu_power_on(void)
+{
+	return is_mcu_power_on;
+}
+EXPORT_SYMBOL_GPL(tinker_mcu_is_mcu_power_on);
+
 
 static ssize_t tinker_mcu_bl_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -247,6 +231,13 @@ static int tinker_mcu_remove(struct i2c_client *client)
 	return 0;
 }
 
+static void tinker_mcu_shutdown(struct i2c_client *client)
+{
+	is_mcu_power_on = 0;
+	tinker_mcu_i2c_write(g_mcu_data, REG_POWERON, 0);
+	return;
+}
+
 static const struct i2c_device_id tinker_mcu_id[] = {
 	{"tinker_mcu", 0},
 	{},
@@ -258,6 +249,7 @@ static struct i2c_driver tinker_mcu_driver = {
 	},
 	.probe = tinker_mcu_probe,
 	.remove = tinker_mcu_remove,
+	.shutdown = tinker_mcu_shutdown,
 	.id_table = tinker_mcu_id,
 };
 
