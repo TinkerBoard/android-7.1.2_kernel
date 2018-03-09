@@ -241,6 +241,10 @@
 	};
 };
 
+&route_hdmi {
+	status = "okay";
+};
+
 &hevc_service {
 	status = "okay";
 };
