@@ -47,7 +47,7 @@
 
 / {
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff690000 vmalloc=496M";
+		bootargs = "earlycon=uart8250,mmio32,0xff1b0000 vmalloc=496M";
 	};
 
 	cpuinfo {
@@ -141,12 +141,12 @@
 	fiq-debugger {
 		compatible = "rockchip,fiq-debugger";
 		interrupts = <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH 0>;
-		rockchip,serial-id = <2>;
+		rockchip,serial-id = <3>;
 		rockchip,wake-irq = <0>;
 		rockchip,irq-mode-enable = <0>;  /* If enable uart uses irq instead of fiq */
 		rockchip,baudrate = <115200>;  /* Only 115200 and 1500000 */
 		pinctrl-names = "default";
-		pinctrl-0 = <&uart2_xfer>;
+		pinctrl-0 = <&uart3_xfer>;
 	};
 
 	psci {
