@@ -114,7 +114,11 @@
 			linux,default-trigger="default-off";
 		};
 	};
-
+	rk3288-gpiomem {
+		compatible = "rockchip,rk3288-gpiomem";
+		reg = <0xff750000 0x1000>;
+		status = "okay";
+	};
 	sound-simple-card {
 		compatible = "simple-audio-card";
 		simple-audio-card,format = "i2s";
