@@ -306,6 +306,31 @@ static int dw_mci_rockchip_probe(struct platform_device *pdev)
 	return dw_mci_pltfm_register(pdev, drv_data);
 }
 
+static void dw_mci_rockchip_platfm_shutdown(struct platform_device *pdev)
+{
+	struct dw_mci *host = platform_get_drvdata(pdev);
+	struct device_node *np = host->dev->of_node;
+	int  gpio;
+	enum of_gpio_flags flags;
+
+
+	gpio = of_get_named_gpio_flags(np, "maskrom_gpio", 0, &flags);
+
+	if (gpio_is_valid(gpio)) {
+		if(!gpio_request(gpio, "maskrom_gpio")) {
+	        	if (!gpio_direction_output(gpio, 0)) {
+		        	gpio_free(gpio);
+				dev_info(host->dev, "set maskrom gpio to low\n");
+	        	}else{
+				gpio_free(gpio);
+				dev_err(host->dev, "maskrom_gpio set low fail\n");
+			}
+		}else{
+			dev_err(host->dev, "maskrom_gpio request fail\n");
+		}
+	}
+}
+
 #ifdef CONFIG_PM_SLEEP
 static int dw_mci_rockchip_suspend(struct device *dev)
 {
@@ -329,6 +354,7 @@ static SIMPLE_DEV_PM_OPS(dw_mci_rockchip_pmops,
 static struct platform_driver dw_mci_rockchip_pltfm_driver = {
 	.probe		= dw_mci_rockchip_probe,
 	.remove		= dw_mci_pltfm_remove,
+	.shutdown	= dw_mci_rockchip_platfm_shutdown,
 	.driver		= {
 		.name		= "dwmmc_rockchip",
 		.of_match_table	= dw_mci_rockchip_match,
