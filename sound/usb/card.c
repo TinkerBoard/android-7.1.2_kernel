@@ -68,7 +68,7 @@
 #include "stream.h"
 
 #ifdef TINKER_AUDIO
-#define USB_AUDIO_EXT_CARD_IDX	1
+// #define USB_AUDIO_EXT_CARD_IDX	1
 #define USB_AUDIO_ONBOARD_CARD_IDX	3
 #endif
 
@@ -380,8 +380,11 @@ static int snd_usb_audio_create(struct usb_interface *intf,
 		err = snd_card_new(&intf->dev, USB_AUDIO_ONBOARD_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
 		snd_printk(KERN_INFO "onboard usb card\n");
 	} else {
+                /*
 		err = snd_card_new(&intf->dev, USB_AUDIO_EXT_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
 		snd_printk(KERN_INFO "external usb card\n");
+                */
+                err = snd_card_new(&intf->dev, index[idx], id[idx], THIS_MODULE, 0, &card);
 	}
 #else
 	err = snd_card_new(&intf->dev, index[idx], id[idx], THIS_MODULE,
