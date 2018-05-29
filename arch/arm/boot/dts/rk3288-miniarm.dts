@@ -177,6 +177,7 @@
 	pinctrl-0 = <&rgmii_pins>;
 	tx_delay = <0x30>;
 	rx_delay = <0x10>;
+	max-speed = <1000>;
 	status = "ok";
 };
 
