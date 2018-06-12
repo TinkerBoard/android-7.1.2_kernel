@@ -269,7 +269,7 @@
 			label = "power";
 			gpio-key,wakeup;
 		};
-
+/*
 		menu-key {
 			linux,code = <59>;
 			label = "menu";
@@ -293,6 +293,7 @@
 			label = "camera";
 			rockchip,adc_value = <450>;
 		};
+*/
 	};
 
 	dwc_control_usb: dwc-control-usb@ff770284 {
