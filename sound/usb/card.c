@@ -342,6 +342,16 @@ static int snd_usb_audio_free(struct snd_usb_audio *chip)
 static int snd_usb_audio_dev_free(struct snd_device *device)
 {
 	struct snd_usb_audio *chip = device->device_data;
+
+#ifdef TINKER_AUDIO
+        int ret = 0;
+        char cmd_path[] = "/system/bin/sh";
+        char *cmd_argv[] = {cmd_path, "-c", "echo interactive > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", NULL};
+        char *cmd_envp[] = {"HOME=/", "PATH=/sbin:/system/bin:/system/xbin", NULL};
+
+        ret = call_usermodehelper(cmd_path, cmd_argv, cmd_envp, UMH_WAIT_PROC);
+#endif
+
 	return snd_usb_audio_free(chip);
 }
 
@@ -380,10 +390,15 @@ static int snd_usb_audio_create(struct usb_interface *intf,
 		err = snd_card_new(&intf->dev, USB_AUDIO_ONBOARD_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
 		snd_printk(KERN_INFO "onboard usb card\n");
 	} else {
-                /*
-		err = snd_card_new(&intf->dev, USB_AUDIO_EXT_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
+                int ret = 0;
+                char cmd_path[] = "/system/bin/sh";
+                char *cmd_argv[] = {cmd_path, "-c", "echo ondemand > /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor", NULL};
+                char *cmd_envp[] = {"HOME=/", "PATH=/sbin:/system/bin:/system/xbin", NULL};
+
+                ret = call_usermodehelper(cmd_path, cmd_argv, cmd_envp, UMH_WAIT_PROC);
+
+		//err = snd_card_new(&intf->dev, USB_AUDIO_EXT_CARD_IDX, id[idx], THIS_MODULE, 0, &card);
 		snd_printk(KERN_INFO "external usb card\n");
-                */
                 err = snd_card_new(&intf->dev, index[idx], id[idx], THIS_MODULE, 0, &card);
 	}
 #else
