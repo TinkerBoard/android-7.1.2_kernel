@@ -1524,10 +1524,10 @@
 		reg-io-width = <4>;
 		rockchip,grf = <&grf>;
 		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
-		clocks = <&cru PCLK_HDMI_CTRL>, <&cru SCLK_HDMI_HDCP>;
-		clock-names = "iahb", "isfr";
+		clocks = <&cru PCLK_HDMI_CTRL>, <&cru SCLK_HDMI_HDCP>, <&cru SCLK_HDMI_CEC>;
+		clock-names = "iahb", "isfr", "cec";
 		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&hdmi_ddc>;
+		pinctrl-0 = <&hdmi_ddc &hdmi_cec>;
 		pinctrl-1 = <&hdmi_gpio>;
 		power-domains = <&power RK3288_PD_VIO>;
 		status = "disabled";
@@ -1900,6 +1900,13 @@
 				rockchip,pins = <7 19 RK_FUNC_2 &pcfg_pull_none>,
 						<7 20 RK_FUNC_2 &pcfg_pull_none>;
 			};
+                        hdmi_cec: hdmi-cec {
+                                rockchip,pins = <7 16 RK_FUNC_2 &pcfg_pull_none>;
+                        };
+
+                        hdmi_cec_gpio: hdmi-cec-gpio {
+                                rockchip,pins = <7 16 RK_FUNC_GPIO &pcfg_pull_none>;
+                        };
 		};
 
 		pcfg_pull_up: pcfg-pull-up {
