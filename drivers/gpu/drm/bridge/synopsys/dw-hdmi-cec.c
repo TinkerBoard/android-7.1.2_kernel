@@ -97,7 +97,7 @@ static int dw_hdmi_cec_transmit(struct cec_adapter *adap, u8 attempts,
 {
 	struct dw_hdmi_cec *cec = cec_get_drvdata(adap);
 	unsigned int i, ctrl;
-
+	printk("Info: %s\n", __func__);
 	switch (signal_free_time) {
 	case CEC_SIGNAL_FREE_TIME_RETRY:
 		ctrl = CEC_CTRL_RETRY;
@@ -130,6 +130,7 @@ static irqreturn_t dw_hdmi_cec_hardirq(int irq, void *data)
 	if (stat == 0)
 		return IRQ_NONE;
 
+	printk("Info: dw_hdmi_cec_hardirq stat = %x\n", stat);
 	dw_hdmi_write(cec, stat, HDMI_IH_CEC_STAT0);
 
 	if (stat & CEC_STAT_ERROR_INIT) {
