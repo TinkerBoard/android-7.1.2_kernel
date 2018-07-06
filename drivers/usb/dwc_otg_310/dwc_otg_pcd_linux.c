@@ -1676,11 +1676,11 @@ static void dwc_otg_pcd_check_vbus_work(struct work_struct *work)
 			}
 
 			/* Fail to connect, suspend usb phy and disable clk */
-			if (pldata->phy_status == USB_PHY_ENABLED) {
-				pldata->phy_suspend(pldata, USB_PHY_SUSPEND);
-				udelay(3);
-				pldata->clock_enable(pldata, 0);
-			}
+			//if (pldata->phy_status == USB_PHY_ENABLED) {
+			//	pldata->phy_suspend(pldata, USB_PHY_SUSPEND);
+			//	udelay(3);
+			//	pldata->clock_enable(pldata, 0);
+			//}
 
 			/*
 			 * Release pcd->wake_lock if fail to connect,
