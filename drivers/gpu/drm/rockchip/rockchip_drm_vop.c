@@ -2115,6 +2115,15 @@ vop_crtc_mode_valid(struct drm_crtc *crtc, const struct drm_display_mode *mode,
 	int request_clock = mode->clock;
 	int clock;
 
+	if (mode->hdisplay == 3840 && mode->vdisplay == 2160) {
+		if (mode->clock >= 300000 || mode->clock < 290000) {
+			printk("[INFO] Unpredictable clock in 4K resolution!Ban it!\n");
+			printk("[INFO] hdisplay = %d, crtc_hsync_end = %d, vdisplay = %d, crtc_vsync_end = %d, clock = %d, vrefresh = %d, flag = 0x%x\n",
+				mode->hdisplay, mode->crtc_hsync_end, mode->vdisplay, mode->crtc_vsync_end, mode->clock, mode->vrefresh, mode->flags);
+			return MODE_BAD;
+			}
+	}
+
 	if (mode->clock >= 300000 || mode->clock <= 27500)
 		return MODE_CLOCK_RANGE;
 
