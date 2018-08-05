@@ -2124,6 +2124,11 @@ vop_crtc_mode_valid(struct drm_crtc *crtc, const struct drm_display_mode *mode,
 			}
 	}
 
+	if (mode->hdisplay == 3440 && mode->vdisplay == 1440) {
+		printk("[INFO] 3288 sould not be supported this resolution. Ban it!\n");
+		return MODE_BAD;
+	}
+
 	if (mode->clock >= 300000 || mode->clock <= 27500)
 		return MODE_CLOCK_RANGE;
 
