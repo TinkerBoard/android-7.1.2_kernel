@@ -130,7 +130,7 @@ static struct rockchip_pll_rate_table rk3288_pll_rates[] = {
 	RK3066_PLL_RATE( 28320000, 25, 472, 16),//720*400@70
 	{ /* sentinel */ },
 };
-
+/*
 static struct rockchip_pll_rate_table rk3288_npll_rates[] = {
 	RK3066_PLL_RATE_NB(594000000, 1, 99, 4, 32),
 	RK3066_PLL_RATE_NB(585000000, 6, 585, 4, 32),
@@ -148,7 +148,7 @@ static struct rockchip_pll_rate_table rk3288_npll_rates[] = {
 	RK3066_PLL_RATE_NB(85500000, 4, 171, 12, 32),
 	RK3066_PLL_RATE_NB(74250000, 4, 198, 16, 32),
 };
-
+*/
 #define RK3288_DIV_ACLK_CORE_M0_MASK	0xf
 #define RK3288_DIV_ACLK_CORE_M0_SHIFT	0
 #define RK3288_DIV_ACLK_CORE_MP_MASK	0xf
@@ -258,7 +258,7 @@ static struct rockchip_pll_clock rk3288_pll_clks[] __initdata = {
 	[gpll] = PLL(pll_rk3066, PLL_GPLL, "gpll", mux_pll_p, 0, RK3288_PLL_CON(12),
 		     RK3288_MODE_CON, 12, 8, 0, rk3288_pll_rates),
 	[npll] = PLL(pll_rk3066, PLL_NPLL, "npll",  mux_pll_p, 0, RK3288_PLL_CON(16),
-		     RK3288_MODE_CON, 14, 9, 0, rk3288_npll_rates),
+		     RK3288_MODE_CON, 14, 9, 0, rk3288_pll_rates),
 };
 
 static struct clk_div_table div_hclk_cpu_t[] = {
@@ -473,7 +473,7 @@ static struct rockchip_clk_branch rk3288_clk_branches[] __initdata = {
 			RK3288_CLKSEL_CON(30), 14, 2, MFLAGS, 8, 5, DFLAGS,
 			RK3288_CLKGATE_CON(3), 4, GFLAGS),
 
-	COMPOSITE(DCLK_VOP0, "dclk_vop0", mux_pll_src_cpll_gpll_npll_p, CLK_SET_RATE_NO_REPARENT | CLK_SET_RATE_PARENT,
+	COMPOSITE(DCLK_VOP0, "dclk_vop0", mux_pll_src_cpll_gpll_npll_p, 0,//CLK_SET_RATE_NO_REPARENT | CLK_SET_RATE_PARENT,
 			RK3288_CLKSEL_CON(27), 0, 2, MFLAGS, 8, 8, DFLAGS,
 			RK3288_CLKGATE_CON(3), 1, GFLAGS),
 	COMPOSITE(DCLK_VOP1, "dclk_vop1", mux_pll_src_cpll_gpll_npll_p, 0,
