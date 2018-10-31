@@ -15,6 +15,7 @@
 #include <linux/of_address.h>
 #include <linux/slab.h>
 #include <linux/delay.h>
+#include <linux/regulator/consumer.h>
 
 #include "dw_mmc.h"
 #include "dw_mmc-pltfm.h"
@@ -309,9 +310,18 @@ static int dw_mci_rockchip_probe(struct platform_device *pdev)
 static void dw_mci_rockchip_platfm_shutdown(struct platform_device *pdev)
 {
 	struct dw_mci *host = platform_get_drvdata(pdev);
+	struct mmc_host *mmc = host->slot[0]->mmc;
 	struct device_node *np = host->dev->of_node;
-	int  gpio;
+	int  ret, gpio;
 	enum of_gpio_flags flags;
+
+	mdelay(20);
+
+	if (!IS_ERR(mmc->supply.vmmc))
+		ret = regulator_enable(mmc->supply.vmmc);
+
+	if (!IS_ERR(mmc->supply.vqmmc))
+		regulator_set_voltage(mmc->supply.vqmmc, 3000000, 3300000);
 
 
 	gpio = of_get_named_gpio_flags(np, "maskrom_gpio", 0, &flags);
