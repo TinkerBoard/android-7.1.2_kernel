@@ -2356,6 +2356,57 @@ static void initialize_hdmi_ih_mutes(struct dw_hdmi *hdmi)
 	hdmi_writeb(hdmi, ih_mute, HDMI_IH_MUTE);
 }
 
+static void initialize_hdmi_ih_mutes_resume(struct dw_hdmi *hdmi)
+{
+	u8 ih_mute;
+
+	/*
+	 * Boot up defaults are:
+	 * HDMI_IH_MUTE   = 0x03 (disabled)
+	 * HDMI_IH_MUTE_* = 0x00 (enabled)
+	 *
+	 * Disable top level interrupt bits in HDMI block
+	 */
+	ih_mute = hdmi_readb(hdmi, HDMI_IH_MUTE) |
+		  HDMI_IH_MUTE_MUTE_WAKEUP_INTERRUPT |
+		  HDMI_IH_MUTE_MUTE_ALL_INTERRUPT;
+
+	hdmi_writeb(hdmi, ih_mute, HDMI_IH_MUTE);
+
+	/* by default mask all interrupts */
+	hdmi_writeb(hdmi, 0xff, HDMI_VP_MASK);
+	hdmi_writeb(hdmi, 0xff, HDMI_FC_MASK0);
+	hdmi_writeb(hdmi, 0xff, HDMI_FC_MASK1);
+	hdmi_writeb(hdmi, 0xff, HDMI_FC_MASK2);
+	hdmi_writeb(hdmi, 0xff, HDMI_PHY_MASK0);
+	hdmi_writeb(hdmi, 0xff, HDMI_PHY_I2CM_INT_ADDR);
+	hdmi_writeb(hdmi, 0xff, HDMI_PHY_I2CM_CTLINT_ADDR);
+	hdmi_writeb(hdmi, 0xff, HDMI_AUD_INT);
+	hdmi_writeb(hdmi, 0xff, HDMI_AUD_SPDIFINT);
+	hdmi_writeb(hdmi, 0xff, HDMI_AUD_HBR_MASK);
+	hdmi_writeb(hdmi, 0xff, HDMI_GP_MASK);
+	hdmi_writeb(hdmi, 0xff, HDMI_A_APIINTMSK);
+	hdmi_writeb(hdmi, 0xff, HDMI_I2CM_INT);
+	hdmi_writeb(hdmi, 0xff, HDMI_I2CM_CTLINT);
+
+	/* Disable interrupts in the IH_MUTE_* registers */
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_FC_STAT0);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_FC_STAT1);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_FC_STAT2);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_AS_STAT0);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_PHY_STAT0);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_I2CM_STAT0);
+	//hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_CEC_STAT0);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_VP_STAT0);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_I2CMPHY_STAT0);
+	hdmi_writeb(hdmi, 0xff, HDMI_IH_MUTE_AHBDMAAUD_STAT0);
+
+	/* Enable top level interrupt bits in HDMI block */
+	ih_mute &= ~(HDMI_IH_MUTE_MUTE_WAKEUP_INTERRUPT |
+		    HDMI_IH_MUTE_MUTE_ALL_INTERRUPT);
+	hdmi_writeb(hdmi, ih_mute, HDMI_IH_MUTE);
+}
+
 static void dw_hdmi_poweron(struct dw_hdmi *hdmi)
 {
 	hdmi->bridge_is_on = true;
@@ -3786,7 +3837,7 @@ EXPORT_SYMBOL_GPL(dw_hdmi_unbind);
 static void dw_hdmi_reg_initial(struct dw_hdmi *hdmi)
 {
 	if (hdmi_readb(hdmi, HDMI_IH_MUTE)) {
-		initialize_hdmi_ih_mutes(hdmi);
+		initialize_hdmi_ih_mutes_resume(hdmi);
 		hdmi_writeb(hdmi, HDMI_PHY_I2CM_INT_ADDR_DONE_POL,
 			    HDMI_PHY_I2CM_INT_ADDR);
 
